@@ -15,7 +15,7 @@ export default function Template({ children }: TemplateProps) {
       exit={{ opacity: 0, y: -20, scale: 0.98 }}
       transition={{
         duration: 0.4,
-        ease: [0.22, 1, 0.36, 1],
+        ease: "easeOut" as const,
       }}
     >
       {children}

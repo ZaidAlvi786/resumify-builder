@@ -9,6 +9,7 @@ export interface ResumeData {
     linkedin?: string;
     website?: string;
     target_role: string;
+    summary?: string;
     skills: string[];
     soft_skills?: string[];
     profile_picture?: string; // Base64 encoded image

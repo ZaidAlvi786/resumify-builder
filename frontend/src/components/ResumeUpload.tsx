@@ -222,3 +222,4 @@ const ResumeUpload: React.FC<ResumeUploadProps> = ({ onResumeParsed, onClose }) 
 
 export default ResumeUpload;
 
+

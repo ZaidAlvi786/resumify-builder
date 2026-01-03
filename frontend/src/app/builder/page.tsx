@@ -29,7 +29,7 @@ export default function BuilderPage() {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 className="flex-1 py-8 px-4 sm:px-8 lg:ml-64 relative"
             >
                 <div className="max-w-7xl mx-auto">
