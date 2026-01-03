@@ -15,9 +15,14 @@ app = FastAPI(
 
 # Configure CORS
 origins = [
-    "http://localhost:3000",  # Next.js frontend
+    "http://localhost:3000",  # Next.js frontend (local)
     "http://127.0.0.1:3000",
+    "https://*.vercel.app",  # Vercel deployments
+    os.getenv("FRONTEND_URL", ""),  # Custom frontend URL from env
 ]
+
+# Filter out empty strings
+origins = [origin for origin in origins if origin]
 
 app.add_middleware(
     CORSMiddleware,
