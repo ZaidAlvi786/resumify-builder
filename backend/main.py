@@ -15,9 +15,20 @@ app = FastAPI(
 
 # Configure CORS
 origins = [
-    "http://localhost:3000",  # Next.js frontend
+    "http://localhost:3000",  # Next.js frontend (local)
     "http://127.0.0.1:3000",
+    "https://*.vercel.app",  # Vercel deployments
+    os.getenv("FRONTEND_URL", ""),  # Custom frontend URL from env
 ]
+
+# Allow all origins for Railway deployment (you can restrict later)
+# Railway provides dynamic URLs, so we allow all for flexibility
+# In production, you can add specific domains
+if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("ENVIRONMENT") != "production":
+    origins.append("*")  # Allow all for Railway/Vercel deployments
+else:
+    # Filter out empty strings and wildcards in strict production
+    origins = [origin for origin in origins if origin and origin != "*"]
 
 app.add_middleware(
     CORSMiddleware,

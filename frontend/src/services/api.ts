@@ -1,5 +1,5 @@
 // src/services/api.ts
-const API_URL = "http://localhost:8000/api/resume";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/resume";
 
 export interface ResumeData {
     full_name: string;
@@ -9,6 +9,7 @@ export interface ResumeData {
     linkedin?: string;
     website?: string;
     target_role: string;
+    summary?: string;
     skills: string[];
     soft_skills?: string[];
     profile_picture?: string; // Base64 encoded image

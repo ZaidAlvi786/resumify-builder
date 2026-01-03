@@ -214,20 +214,23 @@ export default function AnalyticsPage() {
                                             </CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-3">
-                                            {Object.entries(analytics.sections_completeness).map(([section, score]) => (
-                                                <div key={section}>
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className="text-sm font-medium capitalize">{section.replace(/_/g, ' ')}</span>
-                                                        <span className="text-sm text-slate-600">{score}%</span>
+                                            {Object.entries(analytics.sections_completeness).map(([section, score]) => {
+                                                const scoreValue = typeof score === 'number' ? score : Number(score) || 0;
+                                                return (
+                                                    <div key={section}>
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <span className="text-sm font-medium capitalize">{section.replace(/_/g, ' ')}</span>
+                                                            <span className="text-sm text-slate-600">{scoreValue}%</span>
+                                                        </div>
+                                                        <div className="w-full bg-slate-200 rounded-full h-2">
+                                                            <div
+                                                                className="bg-green-600 h-2 rounded-full transition-all duration-500"
+                                                                style={{ width: `${scoreValue}%` }}
+                                                            />
+                                                        </div>
                                                     </div>
-                                                    <div className="w-full bg-slate-200 rounded-full h-2">
-                                                        <div
-                                                            className="bg-green-600 h-2 rounded-full transition-all duration-500"
-                                                            style={{ width: `${score}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </CardContent>
                                     </Card>
                                 )}

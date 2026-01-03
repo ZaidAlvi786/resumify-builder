@@ -209,7 +209,7 @@ export default function ReviewerPage() {
                             initial={{ opacity: 0, y: 30, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
                             className="space-y-6"
                         >
                             {/* Score Card */}
@@ -353,7 +353,7 @@ export default function ReviewerPage() {
                                     initial={{ opacity: 0, y: 30, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
                                 >
                                     <Card className="border-t-4 border-t-green-500 bg-gradient-to-br from-green-50 to-emerald-50">
                                         <CardHeader>

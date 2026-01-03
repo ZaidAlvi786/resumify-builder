@@ -10,6 +10,7 @@ import { generateInterviewQuestions } from "@/services/api";
 import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import NeuralLoader from "@/components/ui/NeuralLoader";
 import Sidebar from "@/components/Sidebar";
+import Logo from "@/components/ui/Logo";
 
 export default function InterviewPrepPage() {
     const [resumeText, setResumeText] = useState("");

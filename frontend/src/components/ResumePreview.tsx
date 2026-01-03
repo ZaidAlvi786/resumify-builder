@@ -25,7 +25,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, onEdit, template, o
 
     const handleBulletUpdate = (expIndex: number, bulletIndex: number, newBullet: string) => {
         const updatedData = { ...resumeData };
-        if (updatedData.experience && updatedData.experience[expIndex]) {
+        if (updatedData.experience && updatedData.experience[expIndex] && updatedData.experience[expIndex].bullet_points) {
             updatedData.experience[expIndex].bullet_points[bulletIndex] = newBullet;
             setResumeData(updatedData);
             if (onDataUpdate) {

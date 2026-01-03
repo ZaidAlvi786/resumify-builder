@@ -20,7 +20,7 @@ const pageVariants = {
     scale: 1,
     transition: {
       duration: 0.4,
-      ease: [0.22, 1, 0.36, 1], // Custom easing for smooth feel
+      ease: "easeOut" as const, // Custom easing for smooth feel
       staggerChildren: 0.1,
     },
   },
@@ -30,7 +30,7 @@ const pageVariants = {
     scale: 0.98,
     transition: {
       duration: 0.3,
-      ease: [0.22, 1, 0.36, 1],
+      ease: "easeOut" as const,
     },
   },
 };
@@ -45,7 +45,7 @@ const childVariants = {
     y: 0,
     transition: {
       duration: 0.3,
-      ease: "easeOut",
+      ease: "easeOut" as const,
     },
   },
 };
