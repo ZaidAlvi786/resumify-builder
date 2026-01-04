@@ -1,11 +1,30 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Balldoug';
+  src: url('/fonts/balldoug-regular.otf') format('opentype'),
+       url('/fonts/balldoug-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Balldoug';
+  src: url('/fonts/balldoug-italic.otf') format('opentype'),
+       url('/fonts/balldoug-italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
   --font-space-grotesk: var(--font-space-grotesk);
   --font-inter: var(--font-inter);
+  --font-balldoug: 'Balldoug', serif;
 }
 
 body {
