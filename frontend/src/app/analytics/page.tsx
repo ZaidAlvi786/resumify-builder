@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { getResumeAnalytics } from "@/services/api";
 import { Loader2, BarChart3, TrendingUp, FileText, Target, Zap } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function AnalyticsPage() {
+function AnalyticsPageContent() {
     const [resumeText, setResumeText] = useState("");
     const [targetRole, setTargetRole] = useState("");
     const [loading, setLoading] = useState(false);
@@ -265,6 +266,14 @@ export default function AnalyticsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AnalyticsPage() {
+    return (
+        <ProtectedRoute>
+            <AnalyticsPageContent />
+        </ProtectedRoute>
     );
 }
 

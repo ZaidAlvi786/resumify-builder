@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { translateResume } from "@/services/api";
 import { Loader2, Globe, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const LANGUAGES = [
     { code: "Spanish", name: "Spanish (Español)" },
@@ -25,7 +26,7 @@ const LANGUAGES = [
     { code: "Hindi", name: "Hindi (हिन्दी)" },
 ];
 
-export default function TranslatePage() {
+function TranslatePageContent() {
     const [resumeText, setResumeText] = useState("");
     const [targetLanguage, setTargetLanguage] = useState("Spanish");
     const [loading, setLoading] = useState(false);
@@ -185,6 +186,14 @@ export default function TranslatePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function TranslatePage() {
+    return (
+        <ProtectedRoute>
+            <TranslatePageContent />
+        </ProtectedRoute>
     );
 }
 

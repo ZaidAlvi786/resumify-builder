@@ -3,12 +3,13 @@
 import ResumeBuilder from "@/components/ResumeBuilder/ResumeBuilder";
 import Sidebar from "@/components/Sidebar";
 import AIResumeAgent from "@/components/AIResumeAgent";
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function BuilderPage() {
+function BuilderPageContent() {
     const [showAIAgent, setShowAIAgent] = useState(false);
 
     const handleQuickAction = (action: "improve_score" | "target_resume" | "find_jobs") => {
@@ -79,5 +80,13 @@ export default function BuilderPage() {
                 </div>
             </motion.div>
         </div>
+    );
+}
+
+export default function BuilderPage() {
+    return (
+        <ProtectedRoute>
+            <BuilderPageContent />
+        </ProtectedRoute>
     );
 }
