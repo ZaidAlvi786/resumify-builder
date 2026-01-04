@@ -15,8 +15,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import DataLoader from "@/components/DataLoader";
 import ScoreBreakdownComponent from "@/components/ScoreBreakdown";
 import DetailedResumeScore from "@/components/DetailedResumeScore";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function ReviewerPage() {
+function ReviewerPageContent() {
     const [file, setFile] = useState<File | null>(null);
     const [text, setText] = useState("");
     const [targetRole, setTargetRole] = useState("");
@@ -425,5 +426,13 @@ export default function ReviewerPage() {
                 </div>
             </motion.div>
         </div>
+    );
+}
+
+export default function ReviewerPage() {
+    return (
+        <ProtectedRoute>
+            <ReviewerPageContent />
+        </ProtectedRoute>
     );
 }
