@@ -69,7 +69,7 @@ export default function BenchmarkPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-8"
                 >
-                    <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-2">
                         Industry Benchmarking
                     </h1>
                     <p className="text-slate-600">
