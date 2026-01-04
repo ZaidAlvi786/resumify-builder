@@ -25,7 +25,7 @@ const LANGUAGES = [
     { code: "Hindi", name: "Hindi (हिन्दी)" },
 ];
 
-export default function TranslatePage() {
+function TranslatePageContent() {
     const [resumeText, setResumeText] = useState("");
     const [targetLanguage, setTargetLanguage] = useState("Spanish");
     const [loading, setLoading] = useState(false);
@@ -185,6 +185,14 @@ export default function TranslatePage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function TranslatePage() {
+    return (
+        <ProtectedRoute>
+            <TranslatePageContent />
+        </ProtectedRoute>
     );
 }
 
