@@ -12,8 +12,9 @@ import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import TemplateSelector, { CoverLetterTemplate } from "@/components/TemplateSelector";
 import { CoverLetterTemplateComponent } from "@/components/templates/CoverLetterTemplates";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function CoverLetterPage() {
+function CoverLetterPageContent() {
     const [resumeText, setResumeText] = useState("");
     const [jobDescription, setJobDescription] = useState("");
     const [companyName, setCompanyName] = useState("");
@@ -219,6 +220,14 @@ export default function CoverLetterPage() {
                 </div>
             </div>
         </>
+    );
+}
+
+export default function CoverLetterPage() {
+    return (
+        <ProtectedRoute>
+            <CoverLetterPageContent />
+        </ProtectedRoute>
     );
 }
 
