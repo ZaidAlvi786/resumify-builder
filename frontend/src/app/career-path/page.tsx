@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { predictCareerPath, CareerPathStep } from "@/services/api";
 import { Loader2, TrendingUp, BookOpen, Target, ArrowRight, Clock } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function CareerPathPage() {
+function CareerPathPageContent() {
     const [resumeText, setResumeText] = useState("");
     const [currentRole, setCurrentRole] = useState("");
     const [yearsOfExperience, setYearsOfExperience] = useState<number | undefined>();
@@ -231,6 +232,14 @@ export default function CareerPathPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function CareerPathPage() {
+    return (
+        <ProtectedRoute>
+            <CareerPathPageContent />
+        </ProtectedRoute>
     );
 }
 
