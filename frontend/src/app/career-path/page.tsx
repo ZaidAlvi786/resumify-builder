@@ -47,10 +47,10 @@ export default function CareerPathPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-8"
                 >
-                    <h1 className="text-4xl font-bold text-slate-900 mb-2">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-2">
                         AI Career Path Predictor
                     </h1>
-                    <p className="text-slate-600">
+                    <p className="text-sm sm:text-base text-slate-600">
                         Discover your next career steps with AI-powered predictions based on your resume
                     </p>
                 </motion.div>

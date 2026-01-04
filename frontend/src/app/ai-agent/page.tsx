@@ -225,10 +225,10 @@ export default function AIAgentPage() {
                                 >
                                     <Sparkles className="w-10 h-10 text-white" />
                                 </motion.div>
-                                <h2 className="text-3xl font-bold text-slate-900 mb-3 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
+                                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent">
                                     How can AI Resume Agent help with your resume and job search?
                                 </h2>
-                                <p className="text-slate-600 mb-8 max-w-2xl mx-auto">
+                                <p className="text-sm sm:text-base text-slate-600 mb-8 max-w-2xl mx-auto">
                                     Get personalized assistance with resume optimization, job targeting, and career guidance
                                 </p>
                                 

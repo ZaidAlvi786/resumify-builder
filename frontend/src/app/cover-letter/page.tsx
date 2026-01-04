@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateCoverLetter } from "@/services/api";
 import { FileText, Download, Copy, CheckCircle2 } from "lucide-react";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import TemplateSelector, { CoverLetterTemplate } from "@/components/TemplateSelector";
 import { CoverLetterTemplateComponent } from "@/components/templates/CoverLetterTemplates";
@@ -72,14 +72,14 @@ export default function CoverLetterPage() {
 
     return (
         <>
-            {isLoading && <NeuralLoader message="Crafting Your Personalized Cover Letter" />}
+            {isLoading && <LogoLoader message="Crafting Your Personalized Cover Letter" />}
             <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
                 <Sidebar />
                 <div className="flex-1 py-8 px-4 sm:px-8 lg:ml-64">
                     <div className="max-w-4xl mx-auto space-y-8">
                     <header className="text-center">
-                        <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">Cover Letter Generator</h1>
-                        <p className="text-slate-600">AI-powered personalized cover letters that match your resume and job description</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-slate-900 mb-2">Cover Letter Generator</h1>
+                        <p className="text-sm sm:text-base text-slate-600">AI-powered personalized cover letters that match your resume and job description</p>
                     </header>
 
                     <Card className="shadow-xl">

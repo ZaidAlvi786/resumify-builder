@@ -40,10 +40,10 @@ export default function BuilderPage() {
                         className="mb-8 flex items-center justify-between"
                     >
                         <div>
-                            <h1 className="text-3xl font-display font-bold text-slate-900 mb-2">
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-slate-900 mb-2">
                                 Resume Builder
                             </h1>
-                            <p className="text-slate-600 font-display">
+                            <p className="text-sm sm:text-base text-slate-600 font-display">
                                 Follow the steps to generate your professional resume.
                             </p>
                         </div>

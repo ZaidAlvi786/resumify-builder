@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { reviewResume, improveResume } from "@/services/api";
 import { Loader2, Upload, AlertCircle, CheckCircle2, XCircle, Sparkles, Download, FileText } from "lucide-react";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import SkillGapVisualizer from "@/components/SkillGapVisualizer";
 import Sidebar from "@/components/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -119,7 +119,7 @@ export default function ReviewerPage() {
     return (
         <div className="flex min-h-screen bg-slate-50">
             <Sidebar />
-            {isImproving && <NeuralLoader message="Applying AI Suggestions to Your Resume" />}
+            {isImproving && <LogoLoader message="Applying AI Suggestions to Your Resume" />}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -132,8 +132,8 @@ export default function ReviewerPage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.1 }}
                     >
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Resume Reviewer</h1>
-                        <p className="text-slate-600">Get instant AI feedback on your resume.</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-slate-900">Resume Reviewer</h1>
+                        <p className="text-sm sm:text-base text-slate-600">Get instant AI feedback on your resume.</p>
                     </motion.header>
 
                 <Card>
@@ -220,7 +220,7 @@ export default function ReviewerPage() {
                             >
                                 <Card className="border-t-4 border-t-slate-900">
                                     <CardContent className="pt-6 flex flex-col items-center text-center">
-                                        <div className="text-5xl font-extrabold text-slate-900 mb-2">{result.ats_score}/100</div>
+                                        <div className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 mb-2">{result.ats_score}/100</div>
                                         <p className="text-slate-500 uppercase tracking-wide text-sm font-semibold">ATS Score</p>
                                     </CardContent>
                                 </Card>
@@ -317,7 +317,7 @@ export default function ReviewerPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-center mb-4">
-                                        <div className="text-4xl font-extrabold text-indigo-600 mb-2">{result.job_match_score}/100</div>
+                                        <div className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-indigo-600 mb-2">{result.job_match_score}/100</div>
                                         <p className="text-sm text-slate-600">How well your resume matches the job description</p>
                                     </div>
                                     

@@ -11,7 +11,7 @@ import { generateResume, ResumeData } from "@/services/api";
 import { Loader2, Save, FileText, History, Upload } from "lucide-react";
 import ResumePreview from "@/components/ResumePreview";
 import { supabase } from "@/lib/supabase";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import ResumeVersionHistory from "@/components/ResumeVersionHistory";
 import { industryTemplates } from "@/lib/industryTemplates";
 import TemplateSelector, { ResumeTemplate } from "@/components/TemplateSelector";
@@ -233,7 +233,7 @@ export default function ResumeBuilder() {
 
     return (
         <>
-            {isLoading && <NeuralLoader message="Generating Your Perfect Resume" />}
+            {isLoading && <LogoLoader message="Generating Your Perfect Resume" />}
             {showUploadModal && (
                 <ResumeUpload
                     onResumeParsed={handleResumeParsed}
