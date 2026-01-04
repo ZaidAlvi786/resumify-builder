@@ -19,7 +19,8 @@ import {
   BarChart3,
   Globe,
   TrendingUp,
-  LayoutDashboard
+  LayoutDashboard,
+  Target
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -56,6 +57,7 @@ export default function Sidebar() {
     { href: "/", label: "Home", icon: Home },
     { href: "/ai-agent", label: "AI Resume Agent", icon: MessageSquare },
     { href: "/builder", label: "Build Resume", icon: FileText },
+    { href: "/job-tailor", label: "Job Tailor", icon: Target },
     { href: "/reviewer", label: "Review Resume", icon: CheckCircle2 },
     { href: "/cover-letter", label: "Cover Letter", icon: Mail },
     { href: "/resignation-letter", label: "Resignation Letter", icon: FileX },

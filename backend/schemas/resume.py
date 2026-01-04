@@ -258,3 +258,19 @@ class ChatInput(BaseModel):
 class ChatOutput(BaseModel):
     message: str
     suggestions: Optional[List[str]] = None
+
+class JobDescriptionAnalyzerInput(BaseModel):
+    resume_data: dict  # Structured resume data (ResumeData format)
+    job_description: str
+    job_title: Optional[str] = None
+    company_name: Optional[str] = None
+
+class JobDescriptionAnalyzerOutput(BaseModel):
+    match_score: float  # 0-100
+    matched_keywords: List[str]
+    missing_keywords: List[str]
+    skill_gaps: List[str]
+    recommendations: List[str]
+    tailored_resume: dict  # Tailored resume data
+    improvements_made: List[str]  # List of changes made
+    before_after_comparison: Optional[dict] = None
