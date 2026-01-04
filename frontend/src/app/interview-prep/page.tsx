@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateInterviewQuestions } from "@/services/api";
 import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import Logo from "@/components/ui/Logo";
 
@@ -54,15 +54,15 @@ export default function InterviewPrepPage() {
 
     return (
         <>
-            {isLoading && <NeuralLoader message="Preparing Your Interview Questions" />}
+            {isLoading && <LogoLoader message="Preparing Your Interview Questions" />}
             <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
                 <Sidebar />
                 <div className="flex-1 py-8 px-4 sm:px-8 lg:ml-64">
                     <div className="max-w-4xl mx-auto space-y-8">
                     <header className="text-center">
                         <Logo size="lg" className="mb-4" />
-                        <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">Interview Preparation</h1>
-                        <p className="text-slate-600">Get personalized interview questions and suggested answers based on your resume</p>
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-slate-900 mb-2">Interview Preparation</h1>
+                        <p className="text-sm sm:text-base text-slate-600">Get personalized interview questions and suggested answers based on your resume</p>
                     </header>
 
                     <Card className="shadow-xl">
