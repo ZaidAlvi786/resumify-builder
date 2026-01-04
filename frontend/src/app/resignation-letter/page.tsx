@@ -11,8 +11,9 @@ import { FileText, Download, Copy, CheckCircle2 } from "lucide-react";
 import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function ResignationLetterPage() {
+function ResignationLetterPageContent() {
     const [employeeName, setEmployeeName] = useState("");
     const [companyName, setCompanyName] = useState("");
     const [position, setPosition] = useState("");
@@ -232,6 +233,14 @@ export default function ResignationLetterPage() {
                 </motion.div>
             </div>
         </>
+    );
+}
+
+export default function ResignationLetterPage() {
+    return (
+        <ProtectedRoute>
+            <ResignationLetterPageContent />
+        </ProtectedRoute>
     );
 }
 
