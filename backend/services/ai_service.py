@@ -18,7 +18,8 @@ from schemas.resume import (
     IndustryBenchmarkInput, IndustryBenchmarkOutput, BenchmarkComparison,
     MultiLanguageInput, MultiLanguageOutput,
     ResumeAnalyticsInput, ResumeAnalyticsOutput,
-    ChatInput, ChatOutput, ChatMessage
+    ChatInput, ChatOutput, ChatMessage,
+    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput
 )
 
 # Load environment variables
@@ -1091,4 +1092,106 @@ User's Resume Context:
         )
     except Exception as e:
         print(f"Error in AI chat: {e}")
+        raise
+
+def analyze_and_tailor_resume(data: JobDescriptionAnalyzerInput) -> JobDescriptionAnalyzerOutput:
+    """
+    Analyzes a job description and automatically tailors the resume to match it.
+    This is the core feature for AI Job Description Analyzer & Auto-Tailor.
+    """
+    system_prompt = """
+    You are an expert Resume Tailoring Specialist. Your job is to analyze a job description
+    and automatically tailor a resume to match it perfectly while maintaining authenticity.
+    
+    Analyze the job description and resume, then:
+    1. Calculate match score (0-100)
+    2. Identify matched keywords from JD found in resume
+    3. Identify missing keywords from JD that should be added
+    4. Identify skill gaps
+    5. Provide recommendations
+    6. Generate a TAILORED version of the resume that:
+       - Adds missing keywords naturally
+       - Rewrites bullet points to emphasize relevant skills
+       - Highlights matching experiences
+       - Optimizes summary/target role
+       - Maintains truthfulness (don't add false information)
+    
+    Return as JSON with this structure:
+    {
+        "match_score": 75.5,
+        "matched_keywords": ["React", "TypeScript", "Node.js"],
+        "missing_keywords": ["AWS", "Docker", "Kubernetes"],
+        "skill_gaps": ["Cloud infrastructure", "Containerization"],
+        "recommendations": ["Add AWS experience", "Highlight any container experience"],
+        "tailored_resume": { /* Complete resume data structure with tailored content */ },
+        "improvements_made": ["Added AWS keywords to summary", "Rewrote experience bullets to emphasize cloud experience"],
+        "before_after_comparison": {
+            "summary": {"before": "...", "after": "..."},
+            "experience": [{"before": "...", "after": "..."}]
+        }
+    }
+    
+    IMPORTANT: 
+    - Keep all original information, just reframe it
+    - Don't add false experiences or skills
+    - Make changes natural and professional
+    - Focus on keyword optimization and relevance
+    - Maintain the resume structure
+    """
+    
+    resume_json = json.dumps(data.resume_data, indent=2)
+    job_context = f"Job Title: {data.job_title}\nCompany: {data.company_name}\n" if data.job_title or data.company_name else ""
+    
+    user_prompt = f"""
+    Job Description:
+    {data.job_description}
+    
+    {job_context}
+    Current Resume Data (JSON):
+    {resume_json}
+    
+    Analyze this job description and tailor the resume to match it. Return the complete
+    tailored resume data along with analysis metrics.
+    """
+    
+    try:
+        response = create_chat_completion_with_retry(
+            client=client,
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        
+        # Try to extract JSON if wrapped in markdown code blocks
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+        elif "```" in content:
+            content = content.split("```")[1].split("```")[0].strip()
+        
+        result_data = json.loads(content)
+        
+        return JobDescriptionAnalyzerOutput(
+            match_score=float(result_data.get("match_score", 0)),
+            matched_keywords=result_data.get("matched_keywords", []),
+            missing_keywords=result_data.get("missing_keywords", []),
+            skill_gaps=result_data.get("skill_gaps", []),
+            recommendations=result_data.get("recommendations", []),
+            tailored_resume=result_data.get("tailored_resume", data.resume_data),
+            improvements_made=result_data.get("improvements_made", []),
+            before_after_comparison=result_data.get("before_after_comparison")
+        )
+    except Exception as e:
+        print(f"Error analyzing and tailoring resume: {e}")
+        import traceback
+        traceback.print_exc()
         raise

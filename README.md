@@ -68,7 +68,7 @@ pip install -r requirements.txt
 npm run dev
 
 # Backend (from backend directory)
-python main.py
+python3 main.py
 ```
 
 ## License
