@@ -14,6 +14,7 @@ import LogoLoader from "@/components/ui/LogoLoader";
 import ResumePreview from "@/components/ResumePreview";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 interface SavedResume {
     id: string;
@@ -22,7 +23,7 @@ interface SavedResume {
     updated_at: string;
 }
 
-export default function JobTailorPage() {
+function JobTailorPageContent() {
     const [resumeData, setResumeData] = useState<ResumeData | null>(null);
     const [savedResumes, setSavedResumes] = useState<SavedResume[]>([]);
     const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
@@ -494,6 +495,14 @@ export default function JobTailorPage() {
                 </div>
             </div>
         </>
+    );
+}
+
+export default function JobTailorPage() {
+    return (
+        <ProtectedRoute>
+            <JobTailorPageContent />
+        </ProtectedRoute>
     );
 }
 
