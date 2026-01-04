@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { translateResume } from "@/services/api";
 import { Loader2, Globe, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const LANGUAGES = [
     { code: "Spanish", name: "Spanish (Español)" },

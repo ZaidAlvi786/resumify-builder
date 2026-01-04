@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { benchmarkAgainstIndustry, BenchmarkComparison } from "@/services/api";
 import { Loader2, TrendingUp, TrendingDown, Minus, Lightbulb, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 function BenchmarkPageContent() {
     const [resumeText, setResumeText] = useState("");

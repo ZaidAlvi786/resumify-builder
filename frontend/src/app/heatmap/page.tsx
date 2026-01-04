@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { getResumeHeatMap, SectionScore } from "@/services/api";
 import { Loader2, Map, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 function HeatMapPageContent() {
     const [resumeText, setResumeText] = useState("");

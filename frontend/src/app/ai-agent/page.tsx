@@ -9,6 +9,7 @@ import { chatWithAIAgent, ChatMessage, ResumeData } from "@/services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 function AIAgentPageContent() {
     const [messages, setMessages] = useState<ChatMessage[]>([

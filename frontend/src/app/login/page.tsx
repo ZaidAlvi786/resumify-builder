@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Mail, Lock, User, Sparkles, ArrowRight, CheckCircle2 } from "lucide-rea
 import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "@/components/ui/Logo";
 
-export default function LoginPage() {
+function LoginPageContent() {
     const [isSignUp, setIsSignUp] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -232,5 +232,20 @@ export default function LoginPage() {
             </div>
 
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <Logo size="lg" className="mb-4" />
+                    <p className="text-slate-600">Loading...</p>
+                </div>
+            </div>
+        }>
+            <LoginPageContent />
+        </Suspense>
     );
 }
