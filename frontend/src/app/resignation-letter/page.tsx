@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateResignationLetter } from "@/services/api";
 import { FileText, Download, Copy, CheckCircle2 } from "lucide-react";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -72,7 +72,7 @@ export default function ResignationLetterPage() {
 
     return (
         <>
-            {isLoading && <NeuralLoader message="Crafting Your Professional Resignation Letter" />}
+            {isLoading && <LogoLoader message="Crafting Your Professional Resignation Letter" />}
             <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
                 <Sidebar />
                 <motion.div
@@ -88,8 +88,8 @@ export default function ResignationLetterPage() {
                             transition={{ delay: 0.1 }}
                             className="text-center"
                         >
-                            <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">Resignation Letter Generator</h1>
-                            <p className="text-slate-600">Create a professional resignation letter that maintains positive relationships</p>
+                            <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-slate-900 mb-2">Resignation Letter Generator</h1>
+                            <p className="text-sm sm:text-base text-slate-600">Create a professional resignation letter that maintains positive relationships</p>
                         </motion.header>
 
                         <Card className="shadow-xl">
