@@ -11,8 +11,9 @@ import { MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
 import LogoLoader from "@/components/ui/LogoLoader";
 import Sidebar from "@/components/Sidebar";
 import Logo from "@/components/ui/Logo";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
-export default function InterviewPrepPage() {
+function InterviewPrepPageContent() {
     const [resumeText, setResumeText] = useState("");
     const [targetRole, setTargetRole] = useState("");
     const [jobDescription, setJobDescription] = useState("");
@@ -181,6 +182,14 @@ export default function InterviewPrepPage() {
                 </div>
             </div>
         </>
+    );
+}
+
+export default function InterviewPrepPage() {
+    return (
+        <ProtectedRoute>
+            <InterviewPrepPageContent />
+        </ProtectedRoute>
     );
 }
 
