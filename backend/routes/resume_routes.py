@@ -13,7 +13,8 @@ from schemas.resume import (
     IndustryBenchmarkInput, IndustryBenchmarkOutput,
     MultiLanguageInput, MultiLanguageOutput,
     ResumeAnalyticsInput, ResumeAnalyticsOutput,
-    ChatInput, ChatOutput
+    ChatInput, ChatOutput,
+    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput
 )
 from services.ai_service import (
     generate_resume_content, review_resume_content,
@@ -22,7 +23,8 @@ from services.ai_service import (
     generate_resignation_letter, rewrite_bullet_point,
     predict_career_path, generate_resume_heatmap,
     benchmark_against_industry, translate_resume,
-    analyze_resume_analytics, chat_with_ai_agent
+    analyze_resume_analytics, chat_with_ai_agent,
+    analyze_and_tailor_resume
 )
 from services.parser_service import extract_text_from_pdf
 
@@ -223,6 +225,19 @@ async def chat_with_agent(data: ChatInput):
     """
     try:
         result = chat_with_ai_agent(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analyze-job-and-tailor", response_model=JobDescriptionAnalyzerOutput)
+async def analyze_job_and_tailor_resume(data: JobDescriptionAnalyzerInput):
+    """
+    AI Job Description Analyzer & Auto-Tailor:
+    Analyzes a job description and automatically tailors the resume to match it.
+    Returns analysis metrics and a tailored version of the resume.
+    """
+    try:
+        result = analyze_and_tailor_resume(data)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
