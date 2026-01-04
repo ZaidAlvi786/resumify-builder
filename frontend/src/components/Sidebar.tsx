@@ -91,6 +91,11 @@ export default function Sidebar() {
     );
   };
 
+  // Don't render sidebar if user is not logged in
+  if (!session) {
+    return null;
+  }
+
   return (
     <>
       {/* Mobile Menu Button */}
