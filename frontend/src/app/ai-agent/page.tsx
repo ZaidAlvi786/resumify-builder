@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Logo from "@/components/ui/Logo";
 
-export default function AIAgentPage() {
+function AIAgentPageContent() {
     const [messages, setMessages] = useState<ChatMessage[]>([
         {
             role: "assistant",
@@ -388,6 +388,14 @@ export default function AIAgentPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AIAgentPage() {
+    return (
+        <ProtectedRoute>
+            <AIAgentPageContent />
+        </ProtectedRoute>
     );
 }
 
