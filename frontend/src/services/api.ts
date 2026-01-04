@@ -452,3 +452,44 @@ export const chatWithAIAgent = async (
 
     return response.json();
 };
+
+export interface JobDescriptionAnalyzerResponse {
+    match_score: number;
+    matched_keywords: string[];
+    missing_keywords: string[];
+    skill_gaps: string[];
+    recommendations: string[];
+    tailored_resume: ResumeData;
+    improvements_made: string[];
+    before_after_comparison?: {
+        summary?: { before: string; after: string };
+        experience?: Array<{ before: string; after: string }>;
+    };
+}
+
+export const analyzeJobAndTailorResume = async (
+    resumeData: ResumeData,
+    jobDescription: string,
+    jobTitle?: string,
+    companyName?: string
+): Promise<JobDescriptionAnalyzerResponse> => {
+    const response = await fetch(`${API_URL}/analyze-job-and-tailor`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_data: resumeData,
+            job_description: jobDescription,
+            job_title: jobTitle,
+            company_name: companyName,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to analyze job and tailor resume");
+    }
+
+    return response.json();
+};
