@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Sparkles, ArrowRight, CheckCircle2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "@/components/ui/Logo";
 
 export default function LoginPage() {
@@ -18,6 +18,7 @@ export default function LoginPage() {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -57,7 +58,9 @@ export default function LoginPage() {
 
                 if (signInError) throw signInError;
                 
-                router.push("/builder");
+                // Redirect to the page user was trying to access, or builder as default
+                const redirectTo = searchParams.get("redirect") || "/builder";
+                router.push(redirectTo);
                 router.refresh();
             }
         } catch (err: any) {
