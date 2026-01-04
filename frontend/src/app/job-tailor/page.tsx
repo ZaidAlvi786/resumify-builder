@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { analyzeJobAndTailorResume, ResumeData, JobDescriptionAnalyzerResponse } from "@/services/api";
 import { Loader2, Target, CheckCircle, XCircle, ArrowRight, FileText, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
-import NeuralLoader from "@/components/ui/NeuralLoader";
+import LogoLoader from "@/components/ui/LogoLoader";
 import ResumePreview from "@/components/ResumePreview";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -107,7 +107,7 @@ export default function JobTailorPage() {
 
     return (
         <>
-            {loading && <NeuralLoader message="Analyzing Job Description and Tailoring Your Resume" />}
+            {loading && <LogoLoader message="Analyzing Job Description and Tailoring Your Resume" />}
             <div className="flex min-h-screen bg-slate-50">
                 <Sidebar />
                 <div className="flex-1 py-8 px-4 sm:px-8 max-w-7xl mx-auto w-full lg:ml-64">
@@ -121,10 +121,10 @@ export default function JobTailorPage() {
                                 <Target className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-4xl font-bold text-slate-900">
+                                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900">
                                     AI Job Description Analyzer
                                 </h1>
-                                <p className="text-slate-600 mt-1">
+                                <p className="text-sm sm:text-base text-slate-600 mt-1">
                                     Automatically tailor your resume to match any job description
                                 </p>
                             </div>
@@ -343,9 +343,9 @@ export default function JobTailorPage() {
                                             <CardDescription>How well your resume matches the job description</CardDescription>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-4xl font-bold text-blue-600">
-                                                {result.match_score.toFixed(1)}%
-                                            </div>
+                                        <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-blue-600">
+                                            {result.match_score.toFixed(1)}%
+                                        </div>
                                             <div className="text-sm text-slate-600">Match</div>
                                         </div>
                                     </div>
