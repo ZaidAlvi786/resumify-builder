@@ -24,3 +24,4 @@ const publicRoutes = [
 console.log('Protected routes:', protectedRoutes);
 console.log('Public routes:', publicRoutes);
 
+
