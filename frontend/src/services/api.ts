@@ -50,6 +50,146 @@ export const generateResume = async (data: ResumeData) => {
     return response.json();
 };
 
+// AI Career Trend Analyzer
+
+export interface SkillTrend {
+    skill_name: string;
+    current_demand: string;
+    predicted_demand: string;
+    demand_timeline: string;
+    growth_rate?: string;
+    reason: string;
+    industry_impact: string;
+}
+
+export interface RoleTrend {
+    role_title: string;
+    current_market_status: string;
+    predicted_status: string;
+    growth_indicators: string[];
+    salary_trend?: string;
+    skill_requirements: string[];
+    timeline: string;
+}
+
+export interface ResumeRecommendation {
+    recommendation_type: string;
+    priority: number;
+    action: string;
+    reason: string;
+    expected_impact: string;
+}
+
+export interface CareerTrendAnalyzerResponse {
+    industry: string;
+    analysis_date: string;
+    prediction_period: string;
+    skill_trends: SkillTrend[];
+    role_trends: RoleTrend[];
+    resume_recommendations: ResumeRecommendation[];
+    future_proof_score: number;
+    market_insights: string[];
+    emerging_skills: string[];
+    declining_skills: string[];
+    action_plan: string[];
+}
+
+export const analyzeCareerTrends = async (
+    resumeText: string,
+    currentRole: string,
+    industry?: string,
+    yearsOfExperience?: number,
+    targetRoles?: string[],
+    predictionMonths: number = 12
+): Promise<CareerTrendAnalyzerResponse> => {
+    const response = await fetch(`${API_URL}/analyze-career-trends`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_text: resumeText,
+            current_role: currentRole,
+            industry: industry,
+            years_of_experience: yearsOfExperience,
+            target_roles: targetRoles,
+            prediction_months: predictionMonths,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to analyze career trends");
+    }
+
+    return response.json();
+};
+
+// Real-Time Salary Negotiation Simulator
+
+export interface NegotiationMessage {
+    role: string;
+    message: string;
+    strategy?: string;
+    timestamp: string;
+}
+
+export interface NegotiationScript {
+    scenario_name: string;
+    difficulty: string;
+    description: string;
+    key_points: string[];
+    suggested_responses: string[];
+    counter_offer_suggestions: string[];
+}
+
+export interface SalaryNegotiationResponse {
+    negotiation_conversation: NegotiationMessage[];
+    recommended_scripts: NegotiationScript[];
+    salary_benchmark?: Record<string, any>;
+    negotiation_tips: string[];
+    common_mistakes_to_avoid: string[];
+    power_phrases: string[];
+    scenarios_practiced: string[];
+}
+
+export const simulateSalaryNegotiation = async (
+    resumeText: string,
+    targetRole: string,
+    currentSalary?: string,
+    yearsOfExperience?: number,
+    location?: string,
+    companyName?: string,
+    jobDescription?: string,
+    initialOffer?: string,
+    negotiationScenario?: string
+): Promise<SalaryNegotiationResponse> => {
+    const response = await fetch(`${API_URL}/salary-negotiation`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_text: resumeText,
+            target_role: targetRole,
+            current_salary: currentSalary,
+            years_of_experience: yearsOfExperience,
+            location: location,
+            company_name: companyName,
+            job_description: jobDescription,
+            initial_offer: initialOffer,
+            negotiation_scenario: negotiationScenario,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to simulate salary negotiation");
+    }
+
+    return response.json();
+};
+
 export const reviewResume = async (file: File | null, text: string | null, targetRole: string, jobDescription?: string) => {
     const formData = new FormData();
     if (file) formData.append("file", file);
@@ -70,6 +210,8 @@ export const reviewResume = async (file: File | null, text: string | null, targe
     return response.json();
 };
 
+
+
 export const matchJobDescription = async (resumeText: string, jobDescription: string) => {
     const response = await fetch(`${API_URL}/match-job`, {
         method: "POST",
@@ -89,6 +231,8 @@ export const matchJobDescription = async (resumeText: string, jobDescription: st
 
     return response.json();
 };
+
+
 
 export const generateCoverLetter = async (
     resumeText: string,
@@ -119,6 +263,8 @@ export const generateCoverLetter = async (
     return response.json();
 };
 
+
+
 export const generateInterviewQuestions = async (
     resumeText: string,
     targetRole: string,
@@ -143,6 +289,8 @@ export const generateInterviewQuestions = async (
 
     return response.json();
 };
+
+
 
 export const improveResume = async (
     resumeText: string,
@@ -179,6 +327,8 @@ export const improveResume = async (
     return response.json();
 };
 
+
+
 export const generateResignationLetter = async (
     employeeName: string,
     companyName: string,
@@ -210,6 +360,8 @@ export const generateResignationLetter = async (
     return response.json();
 };
 
+
+
 export const rewriteBulletPoint = async (
     originalBullet: string,
     targetRole: string,
@@ -234,6 +386,8 @@ export const rewriteBulletPoint = async (
 
     return response.json();
 };
+
+
 
 // Advanced Features APIs
 
@@ -278,6 +432,8 @@ export const predictCareerPath = async (
     return response.json();
 };
 
+
+
 export interface SectionScore {
     section_name: string;
     score: number;
@@ -315,6 +471,8 @@ export const getResumeHeatMap = async (
 
     return response.json();
 };
+
+
 
 export interface BenchmarkComparison {
     metric: string;
@@ -356,6 +514,8 @@ export const benchmarkAgainstIndustry = async (
     return response.json();
 };
 
+
+
 export interface MultiLanguageResponse {
     translated_resume: string;
     language: string;
@@ -387,6 +547,8 @@ export const translateResume = async (
 
     return response.json();
 };
+
+
 
 export interface ResumeAnalyticsResponse {
     ats_score: number;
@@ -423,6 +585,8 @@ export const getResumeAnalytics = async (
     return response.json();
 };
 
+
+
 export interface ChatMessage {
     role: "user" | "assistant";
     content: string;
@@ -452,6 +616,8 @@ export const chatWithAIAgent = async (
 
     return response.json();
 };
+
+
 
 export interface JobDescriptionAnalyzerResponse {
     match_score: number;
@@ -493,3 +659,262 @@ export const analyzeJobAndTailorResume = async (
 
     return response.json();
 };
+
+
+
+// ============================================
+// NEW QUICK WIN FEATURES
+// ============================================
+
+export interface QuantifiedSuggestion {
+    quantified_version: string;
+    metric_type: string;
+    suggested_metrics: string[];
+    explanation: string;
+    confidence: string;
+}
+
+export interface AchievementQuantifierResponse {
+    original_achievement: string;
+    quantified_suggestions: QuantifiedSuggestion[];
+    improvement_tips: string[];
+    example_metrics: Record<string, string[]>;
+}
+
+export const quantifyAchievement = async (
+    achievementText: string,
+    roleTitle?: string,
+    company?: string,
+    targetRole?: string
+): Promise<AchievementQuantifierResponse> => {
+    const response = await fetch(`${API_URL}/quantify-achievement`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            achievement_text: achievementText,
+            role_title: roleTitle,
+            company: company,
+            target_role: targetRole,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to quantify achievement");
+    }
+
+    return response.json();
+};
+
+
+
+export interface SummaryVariation {
+    summary_text: string;
+    style: string;
+    length: string;
+    word_count: number;
+    strengths: string[];
+}
+
+export interface SummaryVariationsResponse {
+    variations: SummaryVariation[];
+    recommended_variation: number;
+    selection_guide: Record<string, string>;
+}
+
+export const getSummaryVariations = async (
+    resumeData: ResumeData,
+    targetRole: string,
+    numberOfVariations: number = 10,
+    stylePreferences?: string[]
+): Promise<SummaryVariationsResponse> => {
+    const response = await fetch(`${API_URL}/summary-variations`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_data: resumeData,
+            target_role: targetRole,
+            number_of_variations: numberOfVariations,
+            style_preferences: stylePreferences,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to generate summary variations");
+    }
+
+    return response.json();
+};
+
+
+
+export interface KeywordSynonym {
+    original_keyword: string;
+    synonyms: string[];
+    context: string;
+    ats_impact: string;
+}
+
+export interface KeywordSynonymExpanderResponse {
+    keyword_synonyms: KeywordSynonym[];
+    suggested_replacements: Record<string, string[]>;
+    keyword_density_analysis: Record<string, any>;
+    recommendations: string[];
+}
+
+export const expandKeywordSynonyms = async (
+    resumeText: string,
+    targetRole: string,
+    jobDescription?: string,
+    avoidKeywordStuffing: boolean = true
+): Promise<KeywordSynonymExpanderResponse> => {
+    const response = await fetch(`${API_URL}/expand-keywords`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_text: resumeText,
+            target_role: targetRole,
+            job_description: jobDescription,
+            avoid_keyword_stuffing: avoidKeywordStuffing,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to expand keyword synonyms");
+    }
+
+    return response.json();
+};
+
+
+
+// ============================================
+// HIGH-IMPACT FEATURES
+// ============================================
+
+export interface ResumeVersion {
+    version_id: string;
+    version_name: string;
+    target_role?: string;
+    industry?: string;
+    style: string;
+    resume_data: ResumeData;
+    key_changes: string[];
+    best_for: string[];
+}
+
+export interface MultiResumePortfolioResponse {
+    master_resume: ResumeData;
+    versions: ResumeVersion[];
+    usage_guide: Record<string, string>;
+    differences_summary: Record<string, any>;
+}
+
+export const generateMultiResumePortfolio = async (
+    masterResumeData: ResumeData,
+    targetRoles?: string[],
+    industries?: string[],
+    styles?: string[],
+    numberOfVersions: number = 5
+): Promise<MultiResumePortfolioResponse> => {
+    const response = await fetch(`${API_URL}/multi-resume-portfolio`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            master_resume_data: masterResumeData,
+            target_roles: targetRoles,
+            industries: industries,
+            styles: styles,
+            number_of_versions: numberOfVersions,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to generate multi-resume portfolio");
+    }
+
+    return response.json();
+};
+
+
+
+export interface RequiredSkill {
+    skill_name: string;
+    importance: string;
+    category: string;
+    description: string;
+}
+
+export interface LearningResource {
+    title: string;
+    type: string;
+    provider?: string;
+    duration?: string;
+    cost?: string;
+    url?: string;
+    description: string;
+}
+
+export interface LearningPath {
+    skill_name: string;
+    current_level: string;
+    target_level: string;
+    learning_resources: LearningResource[];
+    estimated_time: string;
+    difficulty: string;
+    priority: number;
+}
+
+export interface SkillGapAnalyzerResponse {
+    current_skills: string[];
+    required_skills: RequiredSkill[];
+    skill_gaps: string[];
+    skill_level_gaps: Record<string, string>;
+    learning_paths: LearningPath[];
+    skill_priority_ranking: string[];
+    overall_readiness_score: number;
+    recommendations: string[];
+    timeline_estimate: string;
+}
+
+export const analyzeSkillGaps = async (
+    resumeText: string,
+    targetRole: string,
+    jobDescription?: string,
+    currentSkills?: string[],
+    includeLearningPaths: boolean = true
+): Promise<SkillGapAnalyzerResponse> => {
+    const response = await fetch(`${API_URL}/analyze-skill-gaps`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            resume_text: resumeText,
+            target_role: targetRole,
+            job_description: jobDescription,
+            current_skills: currentSkills,
+            include_learning_paths: includeLearningPaths,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to analyze skill gaps");
+    }
+
+    return response.json();
+};
+
+
