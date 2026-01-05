@@ -20,7 +20,9 @@ import {
   Globe,
   TrendingUp,
   LayoutDashboard,
-  Target
+  Target,
+  Wrench,
+  DollarSign
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -62,14 +64,17 @@ export default function Sidebar() {
     { href: "/cover-letter", label: "Cover Letter", icon: Mail },
     { href: "/resignation-letter", label: "Resignation Letter", icon: FileX },
     { href: "/interview-prep", label: "Interview Prep", icon: MessageSquare },
+    { href: "/salary-negotiation", label: "Salary Negotiation", icon: DollarSign },
   ];
 
   const advancedLinks = [
+    { href: "/tools", label: "AI Tools", icon: Wrench },
     { href: "/career-path", label: "Career Path", icon: Route },
+    { href: "/career-trends", label: "Career Trends", icon: TrendingUp },
     { href: "/heatmap", label: "Heat Map", icon: Map },
     { href: "/benchmark", label: "Benchmark", icon: BarChart3 },
     { href: "/translate", label: "Translate", icon: Globe },
-    { href: "/analytics", label: "Analytics", icon: TrendingUp },
+    { href: "/analytics", label: "Analytics", icon: BarChart3 },
   ];
 
   const NavLink = ({ href, label, icon: Icon, onClick }: { href: string; label: string; icon: any; onClick?: () => void }) => {
