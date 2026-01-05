@@ -14,7 +14,14 @@ from schemas.resume import (
     MultiLanguageInput, MultiLanguageOutput,
     ResumeAnalyticsInput, ResumeAnalyticsOutput,
     ChatInput, ChatOutput,
-    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput
+    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput,
+    AchievementQuantifierInput, AchievementQuantifierOutput,
+    SummaryVariationsInput, SummaryVariationsOutput,
+    KeywordSynonymExpanderInput, KeywordSynonymExpanderOutput,
+    MultiResumePortfolioInput, MultiResumePortfolioOutput,
+    SkillGapAnalyzerInput, SkillGapAnalyzerOutput,
+    CareerTrendAnalyzerInput, CareerTrendAnalyzerOutput,
+    SalaryNegotiationInput, SalaryNegotiationOutput
 )
 from services.ai_service import (
     generate_resume_content, review_resume_content,
@@ -24,7 +31,9 @@ from services.ai_service import (
     predict_career_path, generate_resume_heatmap,
     benchmark_against_industry, translate_resume,
     analyze_resume_analytics, chat_with_ai_agent,
-    analyze_and_tailor_resume
+    analyze_and_tailor_resume,
+    quantify_achievement, generate_summary_variations,
+    expand_keyword_synonyms,     generate_multi_resume_portfolio,     analyze_skill_gaps_with_learning_paths,     analyze_career_trends, simulate_salary_negotiation
 )
 from services.parser_service import extract_text_from_pdf
 
@@ -238,6 +247,105 @@ async def analyze_job_and_tailor_resume(data: JobDescriptionAnalyzerInput):
     """
     try:
         result = analyze_and_tailor_resume(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# NEW QUICK WIN FEATURES
+# ============================================
+
+@router.post("/quantify-achievement", response_model=AchievementQuantifierOutput)
+async def quantify_achievement_endpoint(data: AchievementQuantifierInput):
+    """
+    AI Achievement Quantifier:
+    Suggests ways to add metrics and quantification to vague achievements.
+    Helps make achievements more impactful and measurable.
+    """
+    try:
+        result = quantify_achievement(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/summary-variations", response_model=SummaryVariationsOutput)
+async def get_summary_variations(data: SummaryVariationsInput):
+    """
+    Resume Summary Variations Generator:
+    Generates multiple resume summary variations (10+ options) with different styles.
+    Users can choose the best fit for their needs.
+    """
+    try:
+        result = generate_summary_variations(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/expand-keywords", response_model=KeywordSynonymExpanderOutput)
+async def expand_keywords(data: KeywordSynonymExpanderInput):
+    """
+    Keyword Synonym Expander:
+    Suggests alternative keywords and synonyms to improve ATS matching
+    without keyword stuffing. Helps diversify keyword usage naturally.
+    """
+    try:
+        result = expand_keyword_synonyms(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# HIGH-IMPACT FEATURES
+# ============================================
+
+@router.post("/multi-resume-portfolio", response_model=MultiResumePortfolioOutput)
+async def create_multi_resume_portfolio(data: MultiResumePortfolioInput):
+    """
+    Multi-Resume Portfolio Generator:
+    Automatically creates multiple resume versions (technical, executive, creative, etc.)
+    from one master resume. Maintains consistency while adapting to different needs.
+    """
+    try:
+        result = generate_multi_resume_portfolio(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analyze-skill-gaps", response_model=SkillGapAnalyzerOutput)
+async def analyze_skill_gaps(data: SkillGapAnalyzerInput):
+    """
+    AI Skill Gap Analyzer with Learning Paths:
+    Identifies skill gaps for target roles and generates personalized learning paths
+    with courses, certifications, and resources. Provides actionable career development guidance.
+    """
+    try:
+        result = analyze_skill_gaps_with_learning_paths(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analyze-career-trends", response_model=CareerTrendAnalyzerOutput)
+async def analyze_career_trends_endpoint(data: CareerTrendAnalyzerInput):
+    """
+    AI Career Trend Analyzer:
+    Analyzes industry trends and predicts which skills/roles will be in demand.
+    Provides proactive career guidance based on market trends and suggests resume updates.
+    """
+    try:
+        result = analyze_career_trends(data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/salary-negotiation", response_model=SalaryNegotiationOutput)
+async def simulate_salary_negotiation_endpoint(data: SalaryNegotiationInput):
+    """
+    Real-Time Salary Negotiation Simulator:
+    Simulates salary negotiation conversations to help users prepare.
+    Generates realistic negotiation scenarios and provides practice conversations.
+    """
+    try:
+        result = simulate_salary_negotiation(data)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

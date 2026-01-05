@@ -19,7 +19,14 @@ from schemas.resume import (
     MultiLanguageInput, MultiLanguageOutput,
     ResumeAnalyticsInput, ResumeAnalyticsOutput,
     ChatInput, ChatOutput, ChatMessage,
-    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput
+    JobDescriptionAnalyzerInput, JobDescriptionAnalyzerOutput,
+    AchievementQuantifierInput, AchievementQuantifierOutput, QuantifiedSuggestion,
+    SummaryVariationsInput, SummaryVariationsOutput, SummaryVariation,
+    KeywordSynonymExpanderInput, KeywordSynonymExpanderOutput, KeywordSynonym,
+    MultiResumePortfolioInput, MultiResumePortfolioOutput, ResumeVersion,
+    SkillGapAnalyzerInput, SkillGapAnalyzerOutput, RequiredSkill, LearningResource, LearningPath,
+    CareerTrendAnalyzerInput, CareerTrendAnalyzerOutput, SkillTrend, RoleTrend, ResumeRecommendation,
+    SalaryNegotiationInput, SalaryNegotiationOutput, NegotiationMessage, NegotiationScript
 )
 
 # Load environment variables
@@ -43,7 +50,52 @@ client = OpenAI(
 # Free tier options: meta-llama/llama-3.2-3b-instruct:free, google/gemini-2.0-flash-exp:free (rate-limited)
 # Paid options: google/gemini-pro, google/gemini-1.5-flash, openai/gpt-4o-mini, anthropic/claude-3.5-sonnet
 # Default to a more reliable free model
-MODEL_NAME = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.2-3b-instruct:free") 
+MODEL_NAME = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.2-3b-instruct:free")
+
+# Define fallback models for automatic switching when rate limits are reached
+# Priority order: primary model -> free tier fallbacks -> paid tier fallbacks
+# Users can customize this via OPENROUTER_FALLBACK_MODELS (comma-separated) or use defaults
+fallback_models_str = os.getenv("OPENROUTER_FALLBACK_MODELS", "")
+if fallback_models_str:
+    # User-provided fallback models
+    FALLBACK_MODELS = [m.strip() for m in fallback_models_str.split(",") if m.strip()]
+else:
+    # Default fallback models (free tier first, then paid)
+    FALLBACK_MODELS = [
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "google/gemini-2.0-flash-exp:free",
+        "google/gemini-1.5-flash",
+        "google/gemini-pro",
+        "openai/gpt-4o-mini",
+    ]
+
+# Remove the primary model from fallback list if it's already there to avoid duplicates
+if MODEL_NAME in FALLBACK_MODELS:
+    FALLBACK_MODELS.remove(MODEL_NAME)
+
+# Build the complete model list: primary first, then fallbacks
+MODEL_LIST = [MODEL_NAME] + FALLBACK_MODELS
+
+def create_chat_completion_with_auto_fallback(
+    messages: list,
+    model: str = MODEL_NAME,
+    max_retries: int = 3,
+    retry_delay: int = 2,
+    **kwargs
+):
+    """
+    Wrapper function that automatically includes fallback models for rate limit handling.
+    This ensures all AI service calls have automatic model switching capability.
+    """
+    return create_chat_completion_with_retry(
+        client=client,
+        model=model,
+        messages=messages,
+        max_retries=max_retries,
+        retry_delay=retry_delay,
+        fallback_models=FALLBACK_MODELS,
+        **kwargs
+    ) 
 
 def generate_resume_content(data: ResumeInput) -> ResumeOutput:
     """
@@ -78,8 +130,7 @@ def generate_resume_content(data: ResumeInput) -> ResumeOutput:
     """
 
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -177,8 +228,7 @@ def review_resume_content(data: ReviewInput) -> ReviewOutput:
     """
 
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -279,8 +329,7 @@ def match_job_description(data: JobMatchInput) -> JobMatchOutput:
     """
 
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -331,8 +380,7 @@ def generate_cover_letter(data: CoverLetterInput) -> CoverLetterOutput:
     """
 
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -364,8 +412,19 @@ def generate_interview_questions(data: InterviewQuestionsInput) -> InterviewQues
     3. Questions about specific experiences mentioned
     4. Suggested answers that highlight achievements
     
-    Categorize questions (Technical, Behavioral, Experience-based, etc.)
-    Return as JSON with questions, answers, and categories.
+    Return as JSON with this EXACT structure:
+    {
+        "questions": ["question1", "question2", "question3", ...],
+        "answers": ["answer1", "answer2", "answer3", ...],
+        "categories": ["Technical", "Behavioral", "Experience-based", ...]
+    }
+    
+    IMPORTANT:
+    - questions must be a flat list of strings
+    - answers must be a flat list of strings (one per question)
+    - categories must be a flat list of category names (one per question)
+    - All three arrays must have the same length
+    - Each question should have a corresponding answer and category
     """
     
     jd_context = f"\nJob Description:\n{data.job_description}" if data.job_description else ""
@@ -379,8 +438,7 @@ def generate_interview_questions(data: InterviewQuestionsInput) -> InterviewQues
     """
 
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -392,10 +450,39 @@ def generate_interview_questions(data: InterviewQuestionsInput) -> InterviewQues
         
         content = response.choices[0].message.content
         questions_data = json.loads(content)
+        
+        # Handle different response formats
+        questions = questions_data.get("questions", [])
+        answers = questions_data.get("answers", [])
+        categories = questions_data.get("categories", [])
+        
+        # If categories is a dict, convert to list
+        if isinstance(categories, dict):
+            # Extract category names and create a list matching questions length
+            category_list = []
+            for cat_name, cat_questions in categories.items():
+                # If cat_questions is a list, add the category name for each question
+                if isinstance(cat_questions, list):
+                    category_list.extend([cat_name] * len(cat_questions))
+                else:
+                    category_list.append(cat_name)
+            categories = category_list
+        
+        # Ensure all arrays have the same length
+        min_length = min(len(questions), len(answers), len(categories) if categories else len(questions))
+        if min_length > 0:
+            questions = questions[:min_length]
+            answers = answers[:min_length]
+            if categories:
+                categories = categories[:min_length]
+            else:
+                # If no categories provided, create default ones
+                categories = ["General"] * min_length
+        
         return InterviewQuestionsOutput(
-            questions=questions_data.get("questions", []),
-            answers=questions_data.get("answers", []),
-            categories=questions_data.get("categories", [])
+            questions=questions,
+            answers=answers,
+            categories=categories
         )
     except Exception as e:
         print(f"Error generating interview questions: {e}")
@@ -467,8 +554,7 @@ def improve_resume_content(data: ImproveResumeInput) -> ImproveResumeOutput:
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -541,8 +627,7 @@ def generate_resignation_letter(data: ResignationLetterInput) -> ResignationLett
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -603,8 +688,7 @@ def rewrite_bullet_point(data: RewriteBulletInput) -> RewriteBulletOutput:
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -694,8 +778,7 @@ def predict_career_path(data: CareerPathInput) -> CareerPathOutput:
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -771,8 +854,7 @@ def generate_resume_heatmap(data: ResumeHeatMapInput) -> ResumeHeatMapOutput:
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -846,8 +928,7 @@ def benchmark_against_industry(data: IndustryBenchmarkInput) -> IndustryBenchmar
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -913,8 +994,7 @@ def translate_resume(data: MultiLanguageInput) -> MultiLanguageOutput:
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -982,8 +1062,7 @@ def analyze_resume_analytics(data: ResumeAnalyticsInput) -> ResumeAnalyticsOutpu
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -1064,8 +1143,7 @@ User's Resume Context:
         })
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=messages,
             temperature=0.7,
@@ -1155,8 +1233,7 @@ def analyze_and_tailor_resume(data: JobDescriptionAnalyzerInput) -> JobDescripti
     """
     
     try:
-        response = create_chat_completion_with_retry(
-            client=client,
+        response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -1194,4 +1271,801 @@ def analyze_and_tailor_resume(data: JobDescriptionAnalyzerInput) -> JobDescripti
         print(f"Error analyzing and tailoring resume: {e}")
         import traceback
         traceback.print_exc()
+        raise
+
+# ============================================
+# NEW QUICK WIN FEATURES
+# ============================================
+
+def quantify_achievement(data: AchievementQuantifierInput) -> AchievementQuantifierOutput:
+    """
+    AI suggests ways to add metrics and quantification to vague achievements.
+    Helps users make their achievements more impactful and measurable.
+    """
+    system_prompt = """
+    You are an expert Resume Writer specialized in quantifying achievements.
+    Your goal is to help users add measurable metrics to vague achievements.
+    
+    Analyze the achievement and suggest:
+    1. Multiple quantified versions (3-5 options)
+    2. Different types of metrics (percentage, numbers, time, revenue, scale, etc.)
+    3. Context-specific suggestions based on role/industry
+    4. Explanation of why metrics matter
+    
+    Return JSON with:
+    {
+        "quantified_suggestions": [
+            {
+                "quantified_version": "Improved team productivity by 25% through process automation",
+                "metric_type": "percentage",
+                "suggested_metrics": ["25%", "30%", "20-30% range"],
+                "explanation": "Percentage improvements show clear impact and are easy for recruiters to understand",
+                "confidence": "high"
+            }
+        ],
+        "improvement_tips": ["tip1", "tip2"],
+        "example_metrics": {
+            "percentage": ["15%", "25%", "50%", "2x"],
+            "numbers": ["100+ users", "5 team members", "$50K"],
+            "time": ["30% faster", "2 weeks", "50% reduction"],
+            "revenue": ["$100K", "$1M", "50% increase"],
+            "scale": ["5x", "10x", "doubled"]
+        }
+    }
+    """
+    
+    context_parts = []
+    if data.role_title:
+        context_parts.append(f"Role: {data.role_title}")
+    if data.company:
+        context_parts.append(f"Company: {data.company}")
+    if data.target_role:
+        context_parts.append(f"Target Role: {data.target_role}")
+    
+    context_text = "\n".join(context_parts) if context_parts else "General context"
+    
+    user_prompt = f"""
+    Achievement to Quantify:
+    {data.achievement_text}
+    
+    Context:
+    {context_text}
+    
+    Provide 3-5 different quantified versions with various metric types.
+    Be creative but realistic - suggest metrics that make sense for the achievement type.
+    Include explanations and confidence levels for each suggestion.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        suggestions = [
+            QuantifiedSuggestion(**s) for s in result_data.get("quantified_suggestions", [])
+        ]
+        
+        return AchievementQuantifierOutput(
+            original_achievement=data.achievement_text,
+            quantified_suggestions=suggestions,
+            improvement_tips=result_data.get("improvement_tips", []),
+            example_metrics=result_data.get("example_metrics", {})
+        )
+    except Exception as e:
+        print(f"Error quantifying achievement: {e}")
+        raise
+
+def generate_summary_variations(data: SummaryVariationsInput) -> SummaryVariationsOutput:
+    """
+    Generates multiple resume summary variations (10+ options) with different styles.
+    Users can choose the best fit for their needs.
+    """
+    system_prompt = """
+    You are an expert Resume Writer. Generate multiple professional summary variations.
+    
+    Create diverse summaries with different:
+    - Styles: achievement-focused, experience-based, skill-highlight, balanced
+    - Lengths: short (2-3 sentences), medium (3-4 sentences), long (4-5 sentences)
+    - Approaches: quantitative, qualitative, hybrid
+    
+    Return JSON with:
+    {
+        "variations": [
+            {
+                "summary_text": "Full summary text here...",
+                "style": "achievement-focused",
+                "length": "medium",
+                "word_count": 75,
+                "strengths": ["Emphasizes quantifiable results", "ATS-optimized"]
+            }
+        ],
+        "recommended_variation": 0,
+        "selection_guide": {
+            "achievement-focused": "Use for roles emphasizing results",
+            "experience-based": "Use for career transitions",
+            "skill-highlight": "Use for technical roles"
+        }
+    }
+    
+    Generate at least 10 variations covering different styles and approaches.
+    """
+    
+    resume_json = json.dumps(data.resume_data, indent=2)
+    style_prefs = ", ".join(data.style_preferences) if data.style_preferences else "diverse styles"
+    
+    user_prompt = f"""
+    Target Role: {data.target_role}
+    Number of Variations Needed: {data.number_of_variations}
+    Style Preferences: {style_prefs}
+    
+    Resume Data:
+    {resume_json}
+    
+    Generate {data.number_of_variations} unique, professional summary variations.
+    Ensure variety in style, length, and approach.
+    Make each one compelling and ATS-optimized.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.8,  # Higher temperature for more variety
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        variations = [
+            SummaryVariation(**v) for v in result_data.get("variations", [])
+        ]
+        
+        return SummaryVariationsOutput(
+            variations=variations,
+            recommended_variation=result_data.get("recommended_variation", 0),
+            selection_guide=result_data.get("selection_guide", {})
+        )
+    except Exception as e:
+        print(f"Error generating summary variations: {e}")
+        raise
+
+def expand_keyword_synonyms(data: KeywordSynonymExpanderInput) -> KeywordSynonymExpanderOutput:
+    """
+    Suggests alternative keywords and synonyms to improve ATS matching
+    without keyword stuffing. Helps diversify keyword usage naturally.
+    """
+    system_prompt = """
+    You are an expert ATS (Applicant Tracking System) optimizer.
+    Your goal is to suggest keyword synonyms and alternatives that improve ATS matching
+    while maintaining natural, readable resume text.
+    
+    Analyze the resume and job description (if provided) to:
+    1. Identify important keywords
+    2. Suggest relevant synonyms and alternative phrasings
+    3. Provide context for when to use each synonym
+    4. Avoid keyword stuffing - suggest natural integration
+    
+    Return JSON with:
+    {
+        "keyword_synonyms": [
+            {
+                "original_keyword": "manage",
+                "synonyms": ["oversee", "lead", "coordinate", "direct", "supervise"],
+                "context": "Use 'oversee' for strategic roles, 'coordinate' for cross-functional work",
+                "ats_impact": "high"
+            }
+        ],
+        "suggested_replacements": {
+            "manage": ["oversee", "lead"],
+            "create": ["develop", "build", "design"]
+        },
+        "keyword_density_analysis": {
+            "overused_keywords": ["keyword1", "keyword2"],
+            "underused_keywords": ["keyword3"],
+            "optimal_density": "good" or "too_high" or "too_low"
+        },
+        "recommendations": ["rec1", "rec2"]
+    }
+    """
+    
+    jd_text = f"\n\nJob Description:\n{data.job_description}" if data.job_description else ""
+    stuffing_note = "Avoid keyword stuffing - suggest natural alternatives" if data.avoid_keyword_stuffing else ""
+    
+    user_prompt = f"""
+    Resume Text:
+    {data.resume_text}
+    {jd_text}
+    
+    Target Role: {data.target_role}
+    
+    {stuffing_note}
+    
+    Analyze keywords and suggest:
+    1. Synonyms for overused keywords
+    2. Alternative phrasings that are ATS-friendly
+    3. Missing keywords from job description (if provided)
+    4. Natural ways to integrate keywords
+    
+    Focus on keywords that will improve ATS matching while keeping text natural.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.6,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        # Ensure ats_impact is present for each keyword synonym
+        keyword_synonyms_data = result_data.get("keyword_synonyms", [])
+        for ks in keyword_synonyms_data:
+            if "ats_impact" not in ks:
+                ks["ats_impact"] = "medium"  # Default to medium if not provided
+        
+        keyword_synonyms = [
+            KeywordSynonym(**ks) for ks in keyword_synonyms_data
+        ]
+        
+        return KeywordSynonymExpanderOutput(
+            keyword_synonyms=keyword_synonyms,
+            suggested_replacements=result_data.get("suggested_replacements", {}),
+            keyword_density_analysis=result_data.get("keyword_density_analysis", {}),
+            recommendations=result_data.get("recommendations", [])
+        )
+    except Exception as e:
+        print(f"Error expanding keyword synonyms: {e}")
+        raise
+
+# ============================================
+# HIGH-IMPACT FEATURES
+# ============================================
+
+def generate_multi_resume_portfolio(data: MultiResumePortfolioInput) -> MultiResumePortfolioOutput:
+    """
+    Automatically creates multiple resume versions (technical, executive, creative, etc.)
+    from one master resume. Maintains consistency while adapting to different needs.
+    """
+    system_prompt = """
+    You are an expert Resume Writer specialized in creating multiple resume variations.
+    
+    Your task is to generate different versions of a resume, each optimized for:
+    - Different roles (technical, executive, creative, academic)
+    - Different industries
+    - Different styles (ATS-optimized, visual, narrative)
+    - Different contexts (full detail, executive summary, creative portfolio)
+    
+    For each version:
+    1. Maintain core information and consistency
+    2. Adapt style, emphasis, and content organization
+    3. Highlight relevant aspects for that version type
+    4. Adjust tone and format appropriately
+    5. Track what changed from the master resume
+    
+    Return JSON with:
+    {
+        "versions": [
+            {
+                "version_id": "tech-001",
+                "version_name": "Technical Focus",
+                "target_role": "Software Engineer",
+                "industry": "Technology",
+                "style": "technical",
+                "resume_data": { /* full resume structure */ },
+                "key_changes": ["Emphasized technical skills section", "Added project details", "Focused on technical achievements"],
+                "best_for": ["Technical roles", "Software development positions", "ATS systems"]
+            }
+        ],
+        "usage_guide": {
+            "technical": "Use for technical roles, engineering positions",
+            "executive": "Use for leadership roles, C-suite positions"
+        },
+        "differences_summary": {
+            "summary": "Differences between versions...",
+            "common_elements": ["All versions maintain core experience", "Contact info consistent"],
+            "unique_elements": {"technical": ["Extended project section"], "executive": ["Leadership metrics"]}
+        }
+    }
+    """
+    
+    # Build context for variations needed
+    roles_text = f"\nTarget Roles: {', '.join(data.target_roles)}" if data.target_roles else ""
+    industries_text = f"\nIndustries: {', '.join(data.industries)}" if data.industries else ""
+    styles_text = f"\nRequested Styles: {', '.join(data.styles)}" if data.styles else ""
+    
+    # Default styles if none specified
+    default_styles = data.styles if data.styles else [
+        "technical", "executive", "creative", "ats-optimized", "achievement-focused"
+    ]
+    
+    user_prompt = f"""
+    Master Resume Data:
+    {json.dumps(data.master_resume_data, indent=2)}
+    
+    Generate {data.number_of_versions} different resume versions.
+    {roles_text}
+    {industries_text}
+    {styles_text}
+    
+    Styles to include: {', '.join(default_styles[:data.number_of_versions])}
+    
+    Requirements:
+    1. Maintain consistency in factual information (dates, companies, roles)
+    2. Adapt style, emphasis, and organization for each version type
+    3. Each version should be complete and ready to use
+    4. Clearly document what makes each version unique
+    5. Ensure all versions are professional and ATS-friendly where appropriate
+    
+    Generate diverse versions that serve different purposes in the job search process.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        versions = [
+            ResumeVersion(**v) for v in result_data.get("versions", [])
+        ]
+        
+        return MultiResumePortfolioOutput(
+            master_resume=data.master_resume_data,
+            versions=versions,
+            usage_guide=result_data.get("usage_guide", {}),
+            differences_summary=result_data.get("differences_summary", {})
+        )
+    except Exception as e:
+        print(f"Error generating multi-resume portfolio: {e}")
+        raise
+
+def analyze_skill_gaps_with_learning_paths(data: SkillGapAnalyzerInput) -> SkillGapAnalyzerOutput:
+    """
+    Identifies skill gaps for target roles and generates personalized learning paths
+    with courses, certifications, and resources. Provides actionable career development guidance.
+    """
+    system_prompt = """
+    You are an expert Career Development Advisor and Skills Analyst.
+    Your goal is to analyze skill gaps and provide actionable learning paths.
+    
+    Analyze:
+    1. Current skills from resume
+    2. Required skills for target role
+    3. Skill gaps (missing skills)
+    4. Skill level gaps (skills present but insufficient)
+    5. Generate personalized learning paths with specific resources
+    
+    Return JSON with:
+    {
+        "current_skills": ["skill1", "skill2"],
+        "required_skills": [
+            {
+                "skill_name": "Python",
+                "importance": "critical",
+                "category": "technical",
+                "description": "Required for backend development"
+            }
+        ],
+        "skill_gaps": ["skill1", "skill2"],
+        "skill_level_gaps": {
+            "Python": "intermediate needed, currently beginner"
+        },
+        "learning_paths": [
+            {
+                "skill_name": "Python",
+                "current_level": "beginner",
+                "target_level": "intermediate",
+                "learning_resources": [
+                    {
+                        "title": "Python for Everybody",
+                        "type": "course",
+                        "provider": "Coursera",
+                        "duration": "2-3 months",
+                        "cost": "Free",
+                        "description": "Comprehensive Python course"
+                    }
+                ],
+                "estimated_time": "2-3 months",
+                "difficulty": "medium",
+                "priority": 5
+            }
+        ],
+        "skill_priority_ranking": ["skill1", "skill2"],
+        "overall_readiness_score": 65,
+        "recommendations": ["rec1", "rec2"],
+        "timeline_estimate": "3-6 months to close critical gaps"
+    }
+    
+    Provide realistic, actionable learning resources including:
+    - Online courses (Coursera, Udemy, edX, etc.)
+    - Certifications (AWS, Google, Microsoft, etc.)
+    - Books and tutorials
+    - Practice projects
+    - Free and paid options
+    """
+    
+    jd_text = f"\n\nJob Description:\n{data.job_description}" if data.job_description else ""
+    current_skills_text = f"\n\nCurrent Skills (provided): {', '.join(data.current_skills)}" if data.current_skills else ""
+    
+    user_prompt = f"""
+    Resume Text:
+    {data.resume_text}
+    {jd_text}
+    {current_skills_text}
+    
+    Target Role: {data.target_role}
+    
+    Analyze skill gaps and provide:
+    1. Comprehensive list of required skills for this role
+    2. Identify gaps (missing skills) and level gaps (insufficient proficiency)
+    3. Generate detailed learning paths with specific, actionable resources
+    4. Prioritize skills by importance (critical, important, nice-to-have)
+    5. Estimate timeline to close critical gaps
+    6. Provide overall readiness score (0-100)
+    
+    Include realistic learning resources with durations, costs, and providers.
+    Focus on actionable, high-quality resources that will actually help close the gaps.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.6,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        required_skills = [
+            RequiredSkill(**rs) for rs in result_data.get("required_skills", [])
+        ]
+        
+        learning_paths = []
+        if data.include_learning_paths:
+            learning_paths = [
+                LearningPath(**lp) for lp in result_data.get("learning_paths", [])
+            ]
+        
+        return SkillGapAnalyzerOutput(
+            current_skills=result_data.get("current_skills", []),
+            required_skills=required_skills,
+            skill_gaps=result_data.get("skill_gaps", []),
+            skill_level_gaps=result_data.get("skill_level_gaps", {}),
+            learning_paths=learning_paths,
+            skill_priority_ranking=result_data.get("skill_priority_ranking", []),
+            overall_readiness_score=result_data.get("overall_readiness_score", 0),
+            recommendations=result_data.get("recommendations", []),
+            timeline_estimate=result_data.get("timeline_estimate", "Unknown")
+        )
+    except Exception as e:
+        print(f"Error analyzing skill gaps: {e}")
+        raise
+
+def analyze_career_trends(data: CareerTrendAnalyzerInput) -> CareerTrendAnalyzerOutput:
+    """
+    Analyzes industry trends and predicts which skills/roles will be in demand.
+    Provides proactive career guidance based on market trends and suggests resume updates.
+    """
+    from datetime import datetime
+    
+    system_prompt = """
+    You are an expert Career Market Analyst and Industry Trend Predictor.
+    Your goal is to analyze current job market trends and predict future demand for skills and roles.
+    
+    Analyze:
+    1. Current market trends in the industry/role
+    2. Emerging skills that will be in demand
+    3. Skills that are becoming less relevant
+    4. Role trends (which roles are growing/declining)
+    5. Future-proofing recommendations for the resume
+    
+    Return JSON with:
+    {
+        "industry": "<industry name>",
+        "analysis_date": "<current date>",
+        "prediction_period": "Next 12 months",
+        "skill_trends": [
+            {
+                "skill_name": "Python",
+                "current_demand": "high",
+                "predicted_demand": "increasing",
+                "demand_timeline": "6-12 months",
+                "growth_rate": "+25%",
+                "reason": "AI/ML adoption driving demand",
+                "industry_impact": "Critical for data science roles"
+            }
+        ],
+        "role_trends": [
+            {
+                "role_title": "Senior Software Engineer",
+                "current_market_status": "hot",
+                "predicted_status": "growing",
+                "growth_indicators": ["Remote work adoption", "Tech industry expansion"],
+                "salary_trend": "increasing",
+                "skill_requirements": ["Cloud computing", "AI/ML basics"],
+                "timeline": "Next 6-12 months"
+            }
+        ],
+        "resume_recommendations": [
+            {
+                "recommendation_type": "add_skill",
+                "priority": 5,
+                "action": "Add Python and machine learning to skills section",
+                "reason": "High demand predicted for next 12 months",
+                "expected_impact": "Increases marketability by 30%"
+            }
+        ],
+        "future_proof_score": 75,
+        "market_insights": ["insight1", "insight2"],
+        "emerging_skills": ["skill1", "skill2"],
+        "declining_skills": ["skill1", "skill2"],
+        "action_plan": ["action1", "action2"]
+    }
+    
+    Provide realistic, data-driven predictions based on current market trends.
+    Focus on actionable insights that help users future-proof their careers.
+    """
+    
+    industry_text = f"\nIndustry: {data.industry}" if data.industry else ""
+    exp_text = f"\nYears of Experience: {data.years_of_experience}" if data.years_of_experience else ""
+    target_roles_text = f"\nTarget Roles: {', '.join(data.target_roles)}" if data.target_roles else ""
+    
+    user_prompt = f"""
+    Current Role: {data.current_role}
+    {industry_text}
+    {exp_text}
+    {target_roles_text}
+    Prediction Period: Next {data.prediction_months} months
+    
+    Resume:
+    {data.resume_text}
+    
+    Analyze career trends and provide:
+    1. Skill trends - which skills are growing/declining in demand
+    2. Role trends - which roles are hot/declining
+    3. Resume recommendations - how to future-proof the resume
+    4. Market insights - general trends affecting the industry
+    5. Action plan - specific steps to stay competitive
+    
+    Base predictions on realistic market analysis and current industry trends.
+    Provide actionable recommendations that help the user prepare for future job market changes.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        # Parse nested structures
+        skill_trends = [
+            SkillTrend(**st) for st in result_data.get("skill_trends", [])
+        ]
+        
+        role_trends = [
+            RoleTrend(**rt) for rt in result_data.get("role_trends", [])
+        ]
+        
+        resume_recommendations = [
+            ResumeRecommendation(**rr) for rr in result_data.get("resume_recommendations", [])
+        ]
+        
+        # Get current date for analysis_date if not provided
+        analysis_date = result_data.get("analysis_date", datetime.now().strftime("%Y-%m-%d"))
+        
+        return CareerTrendAnalyzerOutput(
+            industry=result_data.get("industry", data.industry or "General"),
+            analysis_date=analysis_date,
+            prediction_period=result_data.get("prediction_period", f"Next {data.prediction_months} months"),
+            skill_trends=skill_trends,
+            role_trends=role_trends,
+            resume_recommendations=resume_recommendations,
+            future_proof_score=result_data.get("future_proof_score", 50),
+            market_insights=result_data.get("market_insights", []),
+            emerging_skills=result_data.get("emerging_skills", []),
+            declining_skills=result_data.get("declining_skills", []),
+            action_plan=result_data.get("action_plan", [])
+        )
+    except Exception as e:
+        print(f"Error analyzing career trends: {e}")
+        raise
+
+def simulate_salary_negotiation(data: SalaryNegotiationInput) -> SalaryNegotiationOutput:
+    """
+    Simulates salary negotiation conversations to help users prepare.
+    Generates realistic negotiation scenarios and provides practice conversations.
+    """
+    from datetime import datetime
+    
+    system_prompt = """
+    You are an expert Salary Negotiation Coach and Career Advisor.
+    Your goal is to help candidates practice salary negotiations through realistic simulations.
+    
+    Generate:
+    1. Realistic negotiation conversations between recruiter and candidate
+    2. Multiple negotiation scripts for different scenarios
+    3. Counter-offer suggestions based on market data
+    4. Negotiation tips and strategies
+    5. Common mistakes to avoid
+    
+    Return JSON with:
+    {
+        "negotiation_conversation": [
+            {
+                "role": "recruiter",
+                "message": "We'd like to offer you $80,000 for this position.",
+                "strategy": "lowball_initial_offer",
+                "timestamp": "2024-01-15 10:00:00"
+            },
+            {
+                "role": "candidate",
+                "message": "Thank you for the offer. Based on my experience and market research...",
+                "strategy": "evidence_based_counter",
+                "timestamp": "2024-01-15 10:01:00"
+            }
+        ],
+        "recommended_scripts": [
+            {
+                "scenario_name": "Entry-Level Position",
+                "difficulty": "easy",
+                "description": "Negotiating first job offer",
+                "key_points": ["Focus on growth opportunities", "Negotiate benefits"],
+                "suggested_responses": ["response1", "response2"],
+                "counter_offer_suggestions": ["5-10% increase", "Additional benefits"]
+            }
+        ],
+        "salary_benchmark": {
+            "role": "Software Engineer",
+            "market_range": "$90,000 - $120,000",
+            "percentile_50": "$105,000",
+            "percentile_75": "$115,000"
+        },
+        "negotiation_tips": ["tip1", "tip2"],
+        "common_mistakes_to_avoid": ["mistake1", "mistake2"],
+        "power_phrases": ["phrase1", "phrase2"],
+        "scenarios_practiced": ["entry-level", "senior"]
+    }
+    
+    Make conversations realistic and educational. Provide actionable advice.
+    """
+    
+    context_parts = []
+    if data.current_salary:
+        context_parts.append(f"Current Salary: {data.current_salary}")
+    if data.years_of_experience:
+        context_parts.append(f"Years of Experience: {data.years_of_experience}")
+    if data.location:
+        context_parts.append(f"Location: {data.location}")
+    if data.company_name:
+        context_parts.append(f"Company: {data.company_name}")
+    if data.initial_offer:
+        context_parts.append(f"Initial Offer: {data.initial_offer}")
+    if data.negotiation_scenario:
+        context_parts.append(f"Scenario: {data.negotiation_scenario}")
+    
+    context_text = "\n".join(context_parts) if context_parts else "General negotiation scenario"
+    jd_text = f"\n\nJob Description:\n{data.job_description}" if data.job_description else ""
+    
+    user_prompt = f"""
+    Target Role: {data.target_role}
+    {context_text}
+    {jd_text}
+    
+    Resume:
+    {data.resume_text[:1000]}...
+    
+    Generate a realistic salary negotiation simulation:
+    1. Create a conversation flow (5-8 exchanges) between recruiter and candidate
+    2. Include multiple negotiation scripts for different scenarios
+    3. Provide market-based salary benchmarks for this role
+    4. Offer negotiation tips and strategies
+    5. Highlight common mistakes to avoid
+    6. Suggest power phrases that strengthen negotiation position
+    
+    Make the conversation realistic - include pushback, counter-offers, and resolution.
+    Base salary suggestions on realistic market data for the role and experience level.
+    """
+    
+    try:
+        response = create_chat_completion_with_auto_fallback(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            extra_headers={
+                "HTTP-Referer": "https://antigravity.dev",
+                "X-Title": "AI Resume Builder",
+            }
+        )
+        
+        content = response.choices[0].message.content
+        result_data = json.loads(content)
+        
+        # Parse nested structures
+        conversation = [
+            NegotiationMessage(**msg) for msg in result_data.get("negotiation_conversation", [])
+        ]
+        
+        scripts = [
+            NegotiationScript(**script) for script in result_data.get("recommended_scripts", [])
+        ]
+        
+        return SalaryNegotiationOutput(
+            negotiation_conversation=conversation,
+            recommended_scripts=scripts,
+            salary_benchmark=result_data.get("salary_benchmark"),
+            negotiation_tips=result_data.get("negotiation_tips", []),
+            common_mistakes_to_avoid=result_data.get("common_mistakes_to_avoid", []),
+            power_phrases=result_data.get("power_phrases", []),
+            scenarios_practiced=result_data.get("scenarios_practiced", [])
+        )
+    except Exception as e:
+        print(f"Error simulating salary negotiation: {e}")
         raise
