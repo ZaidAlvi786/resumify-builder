@@ -265,11 +265,42 @@ export const generateCoverLetter = async (
 
 
 
+export interface CodeExample {
+    language: string;
+    code: string;
+    explanation: string;
+    time_complexity?: string;
+    space_complexity?: string;
+}
+
+export interface InterviewQuestion {
+    question: string;
+    answer: string;
+    category: string;
+    difficulty?: string;
+    experience_level?: string;
+    code_examples?: CodeExample[];
+    key_points?: string[];
+    follow_up_questions?: string[];
+}
+
+export interface InterviewQuestionsResponse {
+    questions: string[];
+    answers: string[];
+    categories: string[];
+    detailed_questions?: InterviewQuestion[];
+    technical_questions_count?: number;
+    behavioral_questions_count?: number;
+    system_design_questions_count?: number;
+}
+
 export const generateInterviewQuestions = async (
     resumeText: string,
     targetRole: string,
-    jobDescription?: string
-) => {
+    jobDescription?: string,
+    yearsOfExperience?: number,
+    includeCodeExamples: boolean = true
+): Promise<InterviewQuestionsResponse> => {
     const response = await fetch(`${API_URL}/interview-questions`, {
         method: "POST",
         headers: {
@@ -279,6 +310,8 @@ export const generateInterviewQuestions = async (
             resume_text: resumeText,
             target_role: targetRole,
             job_description: jobDescription,
+            years_of_experience: yearsOfExperience,
+            include_code_examples: includeCodeExamples,
         }),
     });
 
