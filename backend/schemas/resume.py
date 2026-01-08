@@ -110,11 +110,34 @@ class InterviewQuestionsInput(BaseModel):
     resume_text: str
     target_role: str
     job_description: Optional[str] = None
+    years_of_experience: Optional[int] = None  # For experience-based technical questions
+    include_code_examples: bool = True  # Whether to include code examples in technical answers
+
+class CodeExample(BaseModel):
+    language: str  # e.g., "Python", "JavaScript", "Java"
+    code: str  # The actual code
+    explanation: str  # Explanation of the code
+    time_complexity: Optional[str] = None  # e.g., "O(n)"
+    space_complexity: Optional[str] = None  # e.g., "O(1)"
+
+class InterviewQuestion(BaseModel):
+    question: str
+    answer: str
+    category: str  # "Technical", "Behavioral", "System Design", etc.
+    difficulty: Optional[str] = None  # "easy", "medium", "hard"
+    experience_level: Optional[str] = None  # "junior", "mid", "senior"
+    code_examples: Optional[List[CodeExample]] = None  # Code examples for technical questions
+    key_points: Optional[List[str]] = None  # Key points to cover in answer
+    follow_up_questions: Optional[List[str]] = None  # Potential follow-up questions
 
 class InterviewQuestionsOutput(BaseModel):
-    questions: List[str]
-    answers: List[str]  # Suggested answers
-    categories: List[str]  # Technical, Behavioral, etc.
+    questions: List[str]  # Legacy: simple list for backward compatibility
+    answers: List[str]  # Legacy: simple list for backward compatibility
+    categories: List[str]  # Legacy: simple list for backward compatibility
+    detailed_questions: Optional[List[InterviewQuestion]] = None  # Enhanced questions with code examples
+    technical_questions_count: Optional[int] = None
+    behavioral_questions_count: Optional[int] = None
+    system_design_questions_count: Optional[int] = None
 
 class JobMatchInput(BaseModel):
     resume_text: str
