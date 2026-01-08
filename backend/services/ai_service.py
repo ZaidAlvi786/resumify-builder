@@ -7,7 +7,7 @@ from services.ai_helpers import create_chat_completion_with_retry
 from schemas.resume import (
     ResumeInput, ResumeOutput, ReviewInput, ReviewOutput,
     CoverLetterInput, CoverLetterOutput,
-    InterviewQuestionsInput, InterviewQuestionsOutput,
+    InterviewQuestionsInput, InterviewQuestionsOutput, InterviewQuestion, CodeExample,
     JobMatchInput, JobMatchOutput,
     ImproveResumeInput, ImproveResumeOutput,
     ResignationLetterInput, ResignationLetterOutput,
@@ -402,39 +402,92 @@ def generate_cover_letter(data: CoverLetterInput) -> CoverLetterOutput:
 
 def generate_interview_questions(data: InterviewQuestionsInput) -> InterviewQuestionsOutput:
     """
-    Generates interview questions and suggested answers based on the resume.
+    Generates comprehensive interview questions with technical questions based on experience level
+    and code examples for technical answers.
     """
-    system_prompt = """
-    You are an expert Interview Coach. Generate realistic interview questions based on the resume.
-    Include:
-    1. Technical questions relevant to the role
-    2. Behavioral questions (STAR method)
-    3. Questions about specific experiences mentioned
-    4. Suggested answers that highlight achievements
+    # Determine experience level from years of experience
+    exp_level = "mid"
+    if data.years_of_experience:
+        if data.years_of_experience < 2:
+            exp_level = "junior"
+        elif data.years_of_experience >= 5:
+            exp_level = "senior"
+    
+    system_prompt = f"""
+    You are an expert Interview Coach and Technical Interview Specialist.
+    Generate comprehensive interview questions based on the resume and experience level.
+    
+    For {exp_level}-level candidates, generate:
+    1. Technical questions appropriate for {exp_level} level (algorithms, data structures, system design)
+    2. Behavioral questions using STAR method
+    3. Questions about specific experiences and projects mentioned
+    4. System design questions (if senior level)
+    5. Code examples and explanations for technical questions
     
     Return as JSON with this EXACT structure:
-    {
-        "questions": ["question1", "question2", "question3", ...],
-        "answers": ["answer1", "answer2", "answer3", ...],
-        "categories": ["Technical", "Behavioral", "Experience-based", ...]
-    }
+    {{
+        "questions": ["question1", "question2", ...],  // Simple list for backward compatibility
+        "answers": ["answer1", "answer2", ...],  // Simple list for backward compatibility
+        "categories": ["Technical", "Behavioral", ...],  // Simple list for backward compatibility
+        "detailed_questions": [
+            {{
+                "question": "Explain how you would implement a binary search tree",
+                "answer": "A binary search tree is...",
+                "category": "Technical",
+                "difficulty": "medium",
+                "experience_level": "{exp_level}",
+                "code_examples": [
+                    {{
+                        "language": "Python",
+                        "code": "class TreeNode:\\n    def __init__(self, val):\\n        self.val = val\\n        self.left = None\\n        self.right = None",
+                        "explanation": "This creates a basic tree node structure",
+                        "time_complexity": "O(log n) average",
+                        "space_complexity": "O(n)"
+                    }}
+                ],
+                "key_points": ["point1", "point2"],
+                "follow_up_questions": ["follow-up1", "follow-up2"]
+            }}
+        ],
+        "technical_questions_count": 5,
+        "behavioral_questions_count": 3,
+        "system_design_questions_count": 2
+    }}
     
     IMPORTANT:
-    - questions must be a flat list of strings
-    - answers must be a flat list of strings (one per question)
-    - categories must be a flat list of category names (one per question)
-    - All three arrays must have the same length
-    - Each question should have a corresponding answer and category
+    - Include code examples for ALL technical questions (Python, JavaScript, Java, etc. based on role)
+    - Technical questions should match {exp_level} level difficulty
+    - Code examples should be complete, runnable, and well-commented
+    - Include time/space complexity analysis for algorithms
+    - For senior roles, include system design questions
+    - All arrays (questions, answers, categories) must have the same length
     """
     
     jd_context = f"\nJob Description:\n{data.job_description}" if data.job_description else ""
+    exp_context = f"\nYears of Experience: {data.years_of_experience} ({exp_level} level)" if data.years_of_experience else ""
+    code_note = "\nIMPORTANT: Include code examples for all technical questions." if data.include_code_examples else ""
     
     user_prompt = f"""
     Target Role: {data.target_role}
+    {exp_context}
     {jd_context}
+    {code_note}
     
     Resume:
     {data.resume_text}
+    
+    Generate comprehensive interview questions:
+    1. Technical questions appropriate for {exp_level} level (include code examples)
+    2. Behavioral questions using STAR method
+    3. System design questions (if applicable)
+    4. Questions about specific projects/experiences
+    
+    For technical questions, provide:
+    - Complete code examples in relevant languages
+    - Time and space complexity analysis
+    - Explanation of approach
+    - Key points to cover
+    - Potential follow-up questions
     """
 
     try:
@@ -479,10 +532,34 @@ def generate_interview_questions(data: InterviewQuestionsInput) -> InterviewQues
                 # If no categories provided, create default ones
                 categories = ["General"] * min_length
         
+        # Parse detailed questions with code examples
+        detailed_questions = []
+        if "detailed_questions" in questions_data:
+            for dq in questions_data.get("detailed_questions", []):
+                code_examples = []
+                if "code_examples" in dq and dq["code_examples"]:
+                    for ce in dq["code_examples"]:
+                        code_examples.append(CodeExample(**ce))
+                
+                detailed_questions.append(InterviewQuestion(
+                    question=dq.get("question", ""),
+                    answer=dq.get("answer", ""),
+                    category=dq.get("category", "General"),
+                    difficulty=dq.get("difficulty"),
+                    experience_level=dq.get("experience_level"),
+                    code_examples=code_examples if code_examples else None,
+                    key_points=dq.get("key_points"),
+                    follow_up_questions=dq.get("follow_up_questions")
+                ))
+        
         return InterviewQuestionsOutput(
             questions=questions,
             answers=answers,
-            categories=categories
+            categories=categories,
+            detailed_questions=detailed_questions if detailed_questions else None,
+            technical_questions_count=questions_data.get("technical_questions_count"),
+            behavioral_questions_count=questions_data.get("behavioral_questions_count"),
+            system_design_questions_count=questions_data.get("system_design_questions_count")
         )
     except Exception as e:
         print(f"Error generating interview questions: {e}")
