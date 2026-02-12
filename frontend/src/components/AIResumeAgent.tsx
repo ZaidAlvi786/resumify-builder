@@ -14,6 +14,7 @@ interface Message {
     content: string;
     timestamp: Date;
     attachments?: string[];
+    suggestions?: string[];
 }
 
 interface AIResumeAgentProps {
@@ -57,44 +58,83 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
         };
 
         setMessages((prev) => [...prev, userMessage]);
-        const currentInput = input;
         setInput("");
+        setAttachedResume(null);
         setIsLoading(true);
 
         try {
-            // Convert messages to API format
-            const apiMessages: ChatMessage[] = messages.map(msg => ({
-                role: msg.role,
-                content: msg.content
-            }));
-            apiMessages.push({
-                role: "user",
-                content: currentInput
-            });
+            // Create a placeholder for the assistant response
+            const assistantMessageId = (Date.now() + 1).toString();
+            const initialAssistantMessage: Message = {
+                id: assistantMessageId,
+                role: "assistant",
+                content: "",
+                timestamp: new Date(), // Add timestamp for consistency
+            };
 
-            // Call the API
-            const response = await chatWithAIAgent(
+            setMessages((prev) => [...prev, initialAssistantMessage]);
+
+            // Prepare messages for API
+            const apiMessages: ChatMessage[] = messages.map((m) => ({
+                role: m.role,
+                content: m.content,
+            }));
+            apiMessages.push({ role: "user", content: userMessage.content });
+
+            // Call API with streaming callbacks
+            await chatWithAIAgent(
                 apiMessages,
                 resumeData,
-                attachedResume ? `User attached resume file: ${attachedResume.name}` : undefined
+                attachedResume ? `User attached resume file: ${attachedResume.name}` : undefined,
+                (chunk) => {
+                    setMessages((prev) => {
+                        const newMessages = [...prev];
+                        const lastMsgIndex = newMessages.length - 1;
+                        if (lastMsgIndex >= 0 && newMessages[lastMsgIndex].role === "assistant") {
+                            newMessages[lastMsgIndex] = {
+                                ...newMessages[lastMsgIndex],
+                                content: newMessages[lastMsgIndex].content + chunk,
+                            };
+                        }
+                        return newMessages;
+                    });
+                },
+                (suggestions) => {
+                    setMessages((prev) => {
+                        const newMessages = [...prev];
+                        const lastMsgIndex = newMessages.length - 1;
+                        if (lastMsgIndex >= 0 && newMessages[lastMsgIndex].role === "assistant") {
+                            newMessages[lastMsgIndex] = {
+                                ...newMessages[lastMsgIndex],
+                                suggestions: suggestions,
+                            };
+                        }
+                        return newMessages;
+                    });
+                }
             );
-
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "assistant",
-                content: response.message,
-                timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, assistantMessage]);
         } catch (error) {
-            console.error("Error chatting with AI:", error);
-            const errorMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: "assistant",
-                content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
-                timestamp: new Date(),
-            };
-            setMessages((prev) => [...prev, errorMessage]);
+            console.error("Error fetching AI response:", error);
+            setMessages((prev) => {
+                const newMessages = [...prev];
+                const lastMsgIndex = newMessages.length - 1;
+                // If the last message is the empty assistant placeholder, update it with an error
+                if (lastMsgIndex >= 0 && newMessages[lastMsgIndex].id === (Date.now() + 1).toString() && newMessages[lastMsgIndex].content === "") {
+                    newMessages[lastMsgIndex] = {
+                        ...newMessages[lastMsgIndex],
+                        content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+                    };
+                } else {
+                    // Otherwise, add a new error message
+                    newMessages.push({
+                        id: (Date.now() + 2).toString(),
+                        role: "assistant",
+                        content: "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
+                        timestamp: new Date(),
+                    });
+                }
+                return newMessages;
+            });
         } finally {
             setIsLoading(false);
             setAttachedResume(null);
@@ -189,6 +229,22 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                                     <div className="mt-2 flex items-center gap-2 text-xs opacity-80">
                                         <FileText className="w-3 h-3" />
                                         {message.attachments.join(", ")}
+                                    </div>
+                                )}
+                                {message.suggestions && message.suggestions.length > 0 && (
+                                    <div className="mt-3 space-y-2 border-t pt-2 border-slate-100">
+                                        <p className="text-xs font-semibold text-slate-500">Suggestions:</p>
+                                        <div className="flex flex-col gap-1.5">
+                                            {message.suggestions.map((suggestion, idx) => (
+                                                <button 
+                                                    key={idx}
+                                                    onClick={() => setInput(suggestion)}
+                                                    className="text-xs bg-indigo-50 text-indigo-700 px-3 py-2 rounded-md hover:bg-indigo-100 transition-colors text-left border border-indigo-100"
+                                                >
+                                                    {suggestion}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
                                 <p className="text-xs opacity-70 mt-1">

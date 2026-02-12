@@ -626,28 +626,61 @@ export interface ChatMessage {
 }
 
 export const chatWithAIAgent = async (
-    messages: ChatMessage[],
-    resumeData?: ResumeData,
-    context?: string
+  messages: ChatMessage[],
+  resumeData?: ResumeData,
+  context?: string,
+  onChunk?: (content: string) => void,
+  onSuggestions?: (suggestions: string[]) => void
 ) => {
-    const response = await fetch(`${API_URL}/chat`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-            messages,
-            resume_data: resumeData,
-            context,
-        }),
-    });
+  const response = await fetch(`${API_URL}/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      messages,
+      resume_data: resumeData,
+      context,
+    }),
+  });
 
-    if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to chat with AI agent");
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ detail: "Failed to chat with AI agent" }));
+    throw new Error(error.detail || "Failed to chat with AI agent");
+  }
+
+  if (onChunk || onSuggestions) {
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder();
+    
+    if (reader) {
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last line in buffer if it's incomplete
+        buffer = lines.pop() || "";
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const data = JSON.parse(line);
+            if (data.message && onChunk) onChunk(data.message);
+            if (data.suggestions && onSuggestions) onSuggestions(data.suggestions);
+          } catch (e) {
+            console.error("Error parsing JSON chunk", e);
+          }
+        }
+      }
     }
+    return { message: "", suggestions: [] };
+  }
 
-    return response.json();
+  return response.json();
 };
 
 
@@ -951,3 +984,38 @@ export const analyzeSkillGaps = async (
 };
 
 
+
+export interface CareerTrendInsightsResponse {
+    role: string;
+    location: string;
+    market_temperature: string;
+    temperature_score: number;
+    salary_range: { min: string; max: string; avg: string };
+    growth_rate: string;
+    remote_opportunity: string;
+    ai_impact_score: number;
+    top_skills: { name: string; trend: "rising" | "stable" | "declining" }[];
+}
+
+export const getCareerTrendInsights = async (
+    role: string,
+    location: string = ""
+): Promise<CareerTrendInsightsResponse> => {
+    const response = await fetch(`${API_URL}/career-trend-insights`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            role,
+            location,
+        }),
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to analyze career trends");
+    }
+
+    return response.json();
+};

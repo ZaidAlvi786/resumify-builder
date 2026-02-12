@@ -1169,10 +1169,11 @@ def analyze_resume_analytics(data: ResumeAnalyticsInput) -> ResumeAnalyticsOutpu
         print(f"Error analyzing resume analytics: {e}")
         raise
 
-def chat_with_ai_agent(data: ChatInput) -> ChatOutput:
+def chat_with_ai_agent(data: ChatInput):
     """
     Conversational AI agent for resume and job search assistance.
     Provides intelligent responses based on user queries and resume context.
+    Returns a generator for streaming response.
     """
     system_prompt = """You are an expert AI Resume Agent and Career Coach. Your role is to help users with:
 1. Resume building and optimization
@@ -1223,6 +1224,7 @@ User's Resume Context:
         response = create_chat_completion_with_auto_fallback(
             model=MODEL_NAME,
             messages=messages,
+            stream=True,
             temperature=0.7,
             extra_headers={
                 "HTTP-Referer": "https://antigravity.dev",
@@ -1230,21 +1232,29 @@ User's Resume Context:
             }
         )
         
-        assistant_message = response.choices[0].message.content
-        
-        # Extract suggestions if the response contains actionable items
-        suggestions = []
-        if "suggest" in assistant_message.lower() or "recommend" in assistant_message.lower():
-            # Try to extract bullet points or numbered items
-            lines = assistant_message.split('\n')
-            for line in lines:
-                if line.strip().startswith(('-', '•', '*', '1.', '2.', '3.')):
-                    suggestions.append(line.strip().lstrip('-•*1234567890. '))
-        
-        return ChatOutput(
-            message=assistant_message,
-            suggestions=suggestions[:5] if suggestions else None
-        )
+        def stream_generator():
+            full_content = ""
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_content += content
+                    # Yield JSON object for each chunk
+                    yield json.dumps({"message": content}) + "\n"
+            
+            # Extract suggestions if the response contains actionable items
+            suggestions = []
+            if "suggest" in full_content.lower() or "recommend" in full_content.lower():
+                # Try to extract bullet points or numbered items
+                lines = full_content.split('\n')
+                for line in lines:
+                    if line.strip().startswith(('-', '•', '*', '1.', '2.', '3.')):
+                        suggestions.append(line.strip().lstrip('-•*1234567890. '))
+            
+            if suggestions:
+                yield json.dumps({"suggestions": suggestions[:5]}) + "\n"
+                
+        return stream_generator()
+
     except Exception as e:
         print(f"Error in AI chat: {e}")
         raise

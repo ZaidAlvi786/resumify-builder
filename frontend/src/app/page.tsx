@@ -1,16 +1,30 @@
-
 "use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/Sidebar";
-import { ArrowRight, FileText, CheckCircle, Sparkles, Zap, Target, TrendingUp, Star, Map, BarChart3, Globe, Route, Briefcase } from "lucide-react";
-import { motion } from "framer-motion";
-import StaggerAnimation from "@/components/StaggerAnimation";
-import Testimonials from "@/components/Testimonials";
-import TrustBadges from "@/components/TrustBadges";
+import { ArrowRight, CheckCircle, Sparkles, TrendingUp, Star, Target, Briefcase } from "lucide-react";
+import { motion, Variants } from "framer-motion";
+import dynamic from "next/dynamic";
 
-const containerVariants = {
+// Lazy load heavy components
+const Testimonials = dynamic(() => import("@/components/Testimonials"), { 
+  loading: () => <div className="h-96 w-full animate-pulse bg-slate-100 rounded-xl" />
+});
+const TrustBadges = dynamic(() => import("@/components/TrustBadges"), {
+  loading: () => <div className="h-40 w-full animate-pulse bg-slate-50" />
+});
+const KeyFeatures = dynamic(() => import("@/components/landing/KeyFeatures"), {
+  loading: () => <div className="h-96 w-full animate-pulse bg-slate-50 rounded-xl mt-32" />
+});
+const AITools = dynamic(() => import("@/components/landing/AITools"), {
+  loading: () => <div className="h-96 w-full animate-pulse bg-slate-50 rounded-xl mt-32" />
+});
+const AdvancedFeatures = dynamic(() => import("@/components/landing/AdvancedFeatures"), {
+  loading: () => <div className="h-96 w-full animate-pulse bg-slate-50 rounded-xl mt-32" />
+});
+
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -21,7 +35,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 30, scale: 0.95 },
   visible: {
     opacity: 1,
@@ -29,7 +43,7 @@ const itemVariants = {
     scale: 1,
     transition: {
       duration: 0.6,
-      ease: "easeOut" as const,
+      ease: "easeOut",
     },
   },
 };
@@ -56,6 +70,15 @@ export default function Home() {
               <Sparkles className="w-4 h-4" />
               <span>The World's Most Advanced AI Resume Builder</span>
             </motion.div>
+            
+            {/* Login Link for Returning Users */}
+            <div className="absolute top-6 right-6 z-10">
+              <Link href="/login">
+                <Button variant="ghost" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+                  Already have an account? <span className="font-bold ml-1">Sign In</span>
+                </Button>
+              </Link>
+            </div>
             
             <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight">
               The Best AI Resume Builder{" "}
@@ -189,198 +212,25 @@ export default function Home() {
           </motion.div>
         </motion.div>
 
-        {/* Key Features Section */}
-        <motion.section
+        {/* Dynamic Sections */}
+        <KeyFeatures />
+        
+        <AITools />
+
+        <AdvancedFeatures />
+
+        <TrustBadges />
+
+        <Testimonials />
+
+        <motion.footer
           initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mt-32 w-full max-w-7xl mx-auto px-4"
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+          className="py-6 text-center text-slate-500 text-sm border-t bg-white w-full mt-24"
         >
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              More Than Just a Resume Builder
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Resumify AI makes your job search easier and helps you perform better in interviews, 
-              increasing your chances of landing coveted positions at desirable companies.
-            </p>
-          </div>
-
-          <StaggerAnimation className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-blue-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <Target className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">AI Keyword Targeting</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Instantly improve your interview rate by targeting keywords that recruiters look for. Get personalized keyword suggestions based on job descriptions.</p>
-          </motion.div>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-purple-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <FileText className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">AI Cover Letter Generator</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Generate personalized cover letters and resignation letters that perfectly match your resume and job description. Multiple professional templates included.</p>
-          </motion.div>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-green-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <Zap className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">AI Mock Interview Prep</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Practice and ace the most common questions for your target position. Get personalized interview questions with AI-suggested answers based on your resume.</p>
-          </motion.div>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-indigo-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <TrendingUp className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">Advanced Resume Scoring</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Get detailed resume analysis across 25+ criteria points. See your ATS score improve in real-time with instant feedback on keyword optimization, formatting, and content quality.</p>
-          </motion.div>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-pink-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <CheckCircle className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">Smart Version History</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Track all your resume versions, compare changes side-by-side, and never lose your work. Full history with one-click restore and AI-powered improvement suggestions.</p>
-          </motion.div>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-yellow-300 transition-all group"
-          >
-            <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-              <ArrowRight className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display text-slate-900">Multi-Format Export</h3>
-            <p className="text-slate-600 text-sm leading-relaxed">Export your resume in PDF, Word, HTML, or plain text. Perfect formatting for any ATS system. Professional templates included.</p>
-          </motion.div>
-        </StaggerAnimation>
-        </motion.section>
-
-        {/* Advanced Features Section */}
-        <motion.section
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="mt-32 w-full max-w-7xl mx-auto px-4"
-        >
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              Advanced Features That Set Us Apart
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Unique capabilities you won't find anywhere else. Powered by cutting-edge AI technology.
-            </p>
-          </div>
-
-          <StaggerAnimation className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-          <Link href="/career-path">
-            <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-indigo-300 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <Route className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg font-display text-slate-900">AI Career Path Predictor</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">Discover your next career steps with AI-powered predictions. Get personalized timelines, required skills, and recommended learning paths based on your resume.</p>
-              <div className="text-xs text-indigo-600 font-medium">NEW • Exclusive Feature</div>
-            </motion.div>
-          </Link>
-          <Link href="/heatmap">
-            <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-red-300 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-pink-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <Map className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg font-display text-slate-900">Resume Heat Map</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">Visualize your resume strength by section with an interactive heat map. Instantly identify which sections are strong, moderate, or need improvement.</p>
-              <div className="text-xs text-red-600 font-medium">NEW • Exclusive Feature</div>
-            </motion.div>
-          </Link>
-          <Link href="/benchmark">
-            <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-blue-300 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg font-display text-slate-900">Industry Benchmarking</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">Compare your resume against industry standards. See how you rank in percentiles and get industry-specific insights and recommendations.</p>
-              <div className="text-xs text-blue-600 font-medium">NEW • Exclusive Feature</div>
-            </motion.div>
-          </Link>
-          <Link href="/translate">
-            <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-green-300 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <Globe className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg font-display text-slate-900">Multi-Language Resume Generator</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">Translate your resume to 12+ languages with cultural adaptations. Perfect for global job opportunities with proper formatting and local conventions.</p>
-              <div className="text-xs text-green-600 font-medium">NEW • Exclusive Feature</div>
-            </motion.div>
-          </Link>
-          <Link href="/analytics">
-            <motion.div
-              whileHover={{ y: -5, scale: 1.02 }}
-              className="p-6 bg-white rounded-xl shadow-sm border space-y-3 hover:shadow-lg hover:border-purple-300 transition-all group cursor-pointer"
-            >
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <BarChart3 className="h-6 w-6" />
-              </div>
-              <h3 className="font-bold text-lg font-display text-slate-900">Resume Analytics Dashboard</h3>
-              <p className="text-slate-600 text-sm leading-relaxed">Comprehensive analytics including keyword density, readability scores, section completeness, and estimated interview rates. Track metrics over time.</p>
-              <div className="text-xs text-purple-600 font-medium">NEW • Exclusive Feature</div>
-            </motion.div>
-          </Link>
-          <motion.div
-            whileHover={{ y: -5, scale: 1.02 }}
-            className="p-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl shadow-lg border border-slate-700 space-y-3 text-white"
-          >
-            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur">
-              <Sparkles className="h-6 w-6" />
-            </div>
-            <h3 className="font-bold text-lg font-display">More Features Coming Soon</h3>
-            <p className="text-slate-300 text-sm leading-relaxed">We're constantly innovating and adding new features based on user feedback. Stay tuned for more powerful resume optimization tools!</p>
-          </motion.div>
-        </StaggerAnimation>
-        </motion.section>
-
-      {/* Trust Badges */}
-      <TrustBadges />
-
-      {/* Testimonials */}
-      <Testimonials />
-
-      <motion.footer
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-          className="py-6 text-center text-slate-500 text-sm border-t bg-white w-full"
-      >
-        © 2024 Resumify AI. Built with Next.js & OpenAI.
-      </motion.footer>
+          © 2024 Resumify AI. Built with Next.js & OpenAI.
+        </motion.footer>
       </motion.main>
     </div>
   );

@@ -1,5 +1,5 @@
-# backend/routes/resume_routes.py
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
+from fastapi.responses import StreamingResponse
 from schemas.resume import (
     ResumeInput, ResumeOutput, ReviewInput, ReviewOutput,
     CoverLetterInput, CoverLetterOutput,
@@ -226,15 +226,16 @@ async def get_resume_analytics(data: ResumeAnalyticsInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/chat", response_model=ChatOutput)
+@router.post("/chat")
 async def chat_with_agent(data: ChatInput):
     """
     Conversational AI agent for resume and job search assistance.
     Provides intelligent responses based on user queries and resume context.
+    Returns a streaming response (NDJSON).
     """
     try:
-        result = chat_with_ai_agent(data)
-        return result
+        generator = chat_with_ai_agent(data)
+        return StreamingResponse(generator, media_type="application/x-ndjson")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
