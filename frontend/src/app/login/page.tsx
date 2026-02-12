@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,20 @@ function LoginPageContent() {
     const [success, setSuccess] = useState("");
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    // Refs for autofocus
+    const emailInputRef = useRef<HTMLInputElement>(null);
+    const nameInputRef = useRef<HTMLInputElement>(null);
+
+    // Handle autofocus when switching modes
+    useEffect(() => {
+        if (isSignUp) {
+            // Give a small delay for the animation/render to complete
+            setTimeout(() => nameInputRef.current?.focus(), 100);
+        } else {
+            setTimeout(() => emailInputRef.current?.focus(), 100);
+        }
+    }, [isSignUp]);
 
     const handleEmailAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -170,6 +184,7 @@ function LoginPageContent() {
                                 </Label>
                                 <Input
                                     id="name"
+                                    ref={nameInputRef}
                                     type="text"
                                     placeholder="John Doe"
                                     value={fullName}
@@ -187,6 +202,7 @@ function LoginPageContent() {
                             </Label>
                             <Input
                                 id="email"
+                                ref={emailInputRef}
                                 type="email"
                                 placeholder="you@example.com"
                                 value={email}
