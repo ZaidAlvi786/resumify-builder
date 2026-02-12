@@ -43,6 +43,7 @@ def create_chat_completion_with_retry(
     for model_idx, current_model in enumerate(model_list):
         model_display = f"{current_model} ({model_idx + 1}/{len(model_list)})"
         
+        # Non-streaming logic (existing)
         for attempt in range(max_retries):
             try:
                 response = client.chat.completions.create(
