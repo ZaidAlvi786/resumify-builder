@@ -47,6 +47,7 @@ export default function Navigation() {
     { href: "/heatmap", label: "Heat Map" },
     { href: "/benchmark", label: "Benchmark" },
     { href: "/translate", label: "Translate" },
+    { href: "/pricing", label: "Pricing" },
     { href: "/analytics", label: "Analytics" },
   ];
 
