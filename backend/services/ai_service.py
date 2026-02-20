@@ -1238,17 +1238,33 @@ User's Resume Context:
                 if chunk.choices and chunk.choices[0].delta.content:
                     content = chunk.choices[0].delta.content
                     full_content += content
-                    # Yield JSON object for each chunk
                     yield json.dumps({"message": content}) + "\n"
             
-            # Extract suggestions if the response contains actionable items
+            # Extract suggestions more robustly
             suggestions = []
-            if "suggest" in full_content.lower() or "recommend" in full_content.lower():
-                # Try to extract bullet points or numbered items
-                lines = full_content.split('\n')
-                for line in lines:
-                    if line.strip().startswith(('-', '•', '*', '1.', '2.', '3.')):
-                        suggestions.append(line.strip().lstrip('-•*1234567890. '))
+            
+            # Look for explicit suggestions or bullet points
+            lines = full_content.split('\n')
+            for line in lines:
+                clean_line = line.strip()
+                # Pick up lines that look like recommendations or bullet points
+                if clean_line.startswith(('-', '•', '*', '1.', '2.', '3.', '4.', '5.')):
+                    suggestion = clean_line.lstrip('-•*1234567890. ').strip()
+                    if suggestion and len(suggestion) > 5 and len(suggestion) < 200:
+                        suggestions.append(suggestion)
+            
+            # If no bullet points found, but content is structured, try to find actionable sentences
+            if not suggestions:
+                potential_suggestions = [
+                    "How can I improve my ATS score?",
+                    "Can you help me target a specific role?",
+                    "What skills are missing from my resume?",
+                    "Help me write a professional summary",
+                    "Suggest some interview questions"
+                ]
+                # Randomly pick a few if we have a resume
+                if data.resume_data:
+                    suggestions = potential_suggestions[:3]
             
             if suggestions:
                 yield json.dumps({"suggestions": suggestions[:5]}) + "\n"

@@ -630,7 +630,8 @@ export const chatWithAIAgent = async (
   resumeData?: ResumeData,
   context?: string,
   onChunk?: (content: string) => void,
-  onSuggestions?: (suggestions: string[]) => void
+  onSuggestions?: (suggestions: string[]) => void,
+  signal?: AbortSignal
 ) => {
   const response = await fetch(`${API_URL}/chat`, {
     method: "POST",
@@ -642,6 +643,7 @@ export const chatWithAIAgent = async (
       resume_data: resumeData,
       context,
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -655,26 +657,41 @@ export const chatWithAIAgent = async (
     
     if (reader) {
       let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        // Keep the last line in buffer if it's incomplete
-        buffer = lines.pop() || "";
-        
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const data = JSON.parse(line);
-            if (data.message && onChunk) onChunk(data.message);
-            if (data.suggestions && onSuggestions) onSuggestions(data.suggestions);
-          } catch (e) {
-            console.error("Error parsing JSON chunk", e);
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          // Keep the last potentially incomplete line in buffer
+          buffer = lines.pop() || "";
+          
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue;
+            
+            try {
+              const data = JSON.parse(trimmedLine);
+              if (data.message && onChunk) onChunk(data.message);
+              if (data.suggestions && onSuggestions) onSuggestions(data.suggestions);
+            } catch (e) {
+              console.warn("Retrying JSON parse for fragmented chunk:", trimmedLine);
+              // If it's not valid JSON yet, it might be a partial line that split across chunks
+              // We append it back to the buffer to be processed with the next chunk
+              buffer = trimmedLine + buffer;
+            }
           }
         }
+      } catch (e: any) {
+        if (e.name === 'AbortError') {
+          console.log('Stream aborted');
+        } else {
+          throw e;
+        }
+      } finally {
+        reader.releaseLock();
       }
     }
     return { message: "", suggestions: [] };

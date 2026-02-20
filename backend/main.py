@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routes import resume_routes
+from routes import resume_routes, payment_routes
 
 load_dotenv()
 
@@ -40,6 +40,7 @@ app.add_middleware(
 
 # Include Routes
 app.include_router(resume_routes.router, prefix="/api/resume", tags=["Resume"])
+app.include_router(payment_routes.router, prefix="/api/payment", tags=["Payment"])
 
 @app.get("/")
 def read_root():
