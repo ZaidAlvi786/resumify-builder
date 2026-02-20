@@ -57,7 +57,7 @@ def create_chat_completion_with_retry(
                 return response
             except Exception as e:
                 error_str = str(e)
-                # Check if it's a rate limit error (429)
+                # Check if it's a rate limit error (429) or a general API failure
                 is_rate_limit = (
                     "429" in error_str or 
                     "rate" in error_str.lower() or 
@@ -66,29 +66,36 @@ def create_chat_completion_with_retry(
                     "limit exceeded" in error_str.lower()
                 )
                 
-                if is_rate_limit:
-                    # If we have more models to try, switch to next model
-                    if model_idx < len(model_list) - 1:
-                        print(f"⚠ Rate limit hit on {current_model}. Switching to next model: {model_list[model_idx + 1]}")
-                        break  # Break out of retry loop to try next model
-                    elif attempt < max_retries - 1:
-                        # Last model, but still have retries left
-                        wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
-                        print(f"⚠ Rate limit hit on {current_model}. Retrying in {wait_time} seconds... (attempt {attempt + 1}/{max_retries})")
-                        time.sleep(wait_time)
-                        continue
-                    else:
-                        # All models exhausted and all retries used
-                        raise HTTPException(
-                            status_code=429,
-                            detail=f"AI service is currently rate-limited on all available models. "
-                                   f"Tried models: {', '.join(model_list)}. "
-                                   f"Please try again in a few moments or add more models to OPENROUTER_FALLBACK_MODELS."
-                        )
+                # Check for other retryable/switchable errors (timeouts, connection issues)
+                is_network_error = any(msg in error_str.lower() for msg in [
+                    "timeout", "connection", "disconnected", "unavailable", "server error", "50"
+                ])
+                
+                # If we have more models to try, switch to next model for rate limits or network errors
+                if (is_rate_limit or is_network_error) and model_idx < len(model_list) - 1:
+                    print(f"⚠ Issue with {current_model}: {error_str[:100]}... Switching to next model: {model_list[model_idx + 1]}")
+                    break  # Break out of retry loop to try next model
+                
+                # If it's a rate limit on the last model, or a generic error with retries left
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                    print(f"⚠ Error on {current_model}: {error_str[:100]}... Retrying in {wait_time} seconds... (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
                 else:
-                    # Not a rate limit error - re-raise immediately
-                    # We only switch models for rate limits, not other errors
-                    raise
+                    # All models exhausted or all retries used for current model
+                    if model_idx < len(model_list) - 1:
+                        # If we have more models, try the next one even if it wasn't a "retryable" error
+                        # This handles cases where one model might be misconfigured but others are fine
+                        print(f"⚠ Persistent error on {current_model}. Attempting next model: {model_list[model_idx + 1]}")
+                        break
+                    
+                    # Truly the last straw
+                    raise HTTPException(
+                        status_code=502 if is_network_error else 429 if is_rate_limit else 500,
+                        detail=f"AI service failed after trying all available models. "
+                               f"Tried: {', '.join(model_list)}. Final error: {error_str}"
+                    )
     
     # Should never reach here, but just in case
     raise HTTPException(
