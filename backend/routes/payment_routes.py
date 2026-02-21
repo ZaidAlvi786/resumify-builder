@@ -4,6 +4,8 @@ import stripe
 from fastapi import APIRouter, HTTPException, Request, Header
 from pydantic import BaseModel
 from typing import Optional
+from utils.supabase_client import supabase
+from datetime import datetime
 
 router = APIRouter()
 
@@ -14,6 +16,7 @@ class CheckoutSessionRequest(BaseModel):
     price_id: str
     success_url: str
     cancel_url: str
+    user_id: str
     promo_code: Optional[str] = None
 
 @router.post("/create-checkout-session")
@@ -30,10 +33,35 @@ async def create_checkout_session(data: CheckoutSessionRequest):
             mode='subscription',
             success_url=data.success_url,
             cancel_url=data.cancel_url,
+            client_reference_id=data.user_id,
+            metadata={
+                "user_id": data.user_id
+            },
             discounts=[{'coupon': data.promo_code}] if data.promo_code else [],
             allow_promotion_codes=True if not data.promo_code else False
         )
         return {"url": checkout_session.url}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/create-portal-session")
+async def create_portal_session(data: dict):
+    user_id = data.get("user_id")
+    return_url = data.get("return_url")
+    
+    try:
+        # Get customer ID from profiles
+        response = supabase.table("profiles").select("stripe_customer_id").eq("id", user_id).execute()
+        if not response.data or not response.data[0].get("stripe_customer_id"):
+            raise HTTPException(status_code=400, detail="No Stripe customer found for this user")
+        
+        customer_id = response.data[0]["stripe_customer_id"]
+        
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=return_url,
+        )
+        return {"url": portal_session.url}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -52,7 +80,73 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
     # Handle the event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        # TODO: Update user's subscription and credits in database
-        print(f"Payment successful for session: {session['id']}")
-    
+        user_id = session.get('client_reference_id') or session.get('metadata', {}).get('user_id')
+        customer_id = session.get('customer')
+        subscription_id = session.get('subscription')
+        
+        if user_id:
+            # Determine plan name from line items or metadata
+            plan_name = "pro" # fallback
+            credits = 100
+            
+            try:
+                line_items = stripe.checkout.Session.list_line_items(session['id'])
+                if line_items.data:
+                    price_id = line_items.data[0].price.id
+                    # Simple mapping - in a real app, use product metadata or IDs
+                    if "ultra" in price_id.lower():
+                        plan_name = "ultra"
+                        credits = 999999 # unlimited-ish
+                    elif "pro" in price_id.lower():
+                        plan_name = "pro"
+                        credits = 1000
+            except Exception:
+                pass
+
+            # Update user profile
+            supabase.table("profiles").update({
+                "stripe_customer_id": customer_id,
+                "plan": plan_name,
+                "credits": credits
+            }).eq("id", user_id).execute()
+            
+            # Record subscription details
+            if subscription_id:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                supabase.table("subscriptions").upsert({
+                    "user_id": user_id,
+                    "stripe_subscription_id": subscription_id,
+                    "status": subscription.status,
+                    "price_id": subscription['items']['data'][0]['price']['id'],
+                    "current_period_start": datetime.fromtimestamp(subscription.current_period_start).isoformat(),
+                    "current_period_end": datetime.fromtimestamp(subscription.current_period_end).isoformat(),
+                }).execute()
+                
+    elif event['type'] == 'invoice.paid':
+        invoice = event['data']['object']
+        subscription_id = invoice.get('subscription')
+        if subscription_id:
+            subscription = stripe.Subscription.retrieve(subscription_id)
+            supabase.table("subscriptions").update({
+                "status": subscription.status,
+                "current_period_start": datetime.fromtimestamp(subscription.current_period_start).isoformat(),
+                "current_period_end": datetime.fromtimestamp(subscription.current_period_end).isoformat(),
+            }).eq("stripe_subscription_id", subscription_id).execute()
+            
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        subscription_id = subscription.get('id')
+        
+        # Mark subscription as canceled
+        supabase.table("subscriptions").update({
+            "status": "canceled"
+        }).eq("stripe_subscription_id", subscription_id).execute()
+        
+        # Revert plan to free
+        # Find user_id by subscription_id
+        response = supabase.table("subscriptions").select("user_id").eq("stripe_subscription_id", subscription_id).execute()
+        if response.data:
+            user_id = response.data[0]['user_id']
+            supabase.table("profiles").update({"plan": "free"}).eq("id", user_id).execute()
+
     return {"status": "success"}

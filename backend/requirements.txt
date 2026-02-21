@@ -7,3 +7,4 @@ openai
 pdfplumber
 stripe
 python-dotenv
+supabase

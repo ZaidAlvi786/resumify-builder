@@ -1,19 +1,67 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { PricingCard } from "@/components/PricingCard"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import { Check } from "lucide-react"
-import Navigation from "@/components/Navigation"
+import { Check, Loader2 } from "lucide-react"
+import Sidebar from "@/components/Sidebar"
+import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [coupon, setCoupon] = useState("")
   const [discountApplied, setDiscountApplied] = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
+  const [userPlan, setUserPlan] = useState<string | null>(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    let retries = 0;
+    const MAX_RETRIES = 10;
+
+    async function getProfile(isRetry = false) {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', user.id)
+          .single()
+        
+        if (profile) {
+          const fetchedPlan = profile.plan?.toLowerCase() || 'free'
+          setUserPlan(fetchedPlan)
+          
+          if (fetchedPlan === 'free' && isRetry) {
+            retries++;
+            if (retries >= MAX_RETRIES) {
+              if (interval) clearInterval(interval)
+            }
+          } else if (fetchedPlan !== 'free') {
+            if (interval) clearInterval(interval)
+          }
+        }
+      }
+    }
+    
+    getProfile()
+    
+    // Check if we just came back from a checkout success
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('session_id')) {
+      interval = setInterval(() => getProfile(true), 3000)
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [])
 
   const plans = [
     {
@@ -59,33 +107,106 @@ export default function PricingPage() {
     },
   ]
 
+  const handleSelectPlan = async (plan: any) => {
+    if (plan.title === "Basic") {
+      router.push("/builder")
+      return
+    }
+
+    setLoading(plan.title)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push("/login?redirect=/pricing")
+        return
+      }
+
+      // Map plans to environment variables
+      const priceId = billingCycle === 'monthly' 
+        ? plan.title === "Pro" 
+          ? process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY 
+          : process.env.NEXT_PUBLIC_STRIPE_PRICE_ULTRA_MONTHLY
+        : plan.title === "Pro" 
+          ? process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY 
+          : process.env.NEXT_PUBLIC_STRIPE_PRICE_ULTRA_YEARLY
+
+      if (!priceId || priceId.startsWith('price_placeholder')) {
+        alert("Stripe Price IDs are not configured. Please add them to your environment variables.")
+        setLoading(null)
+        return
+      }
+
+      const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace("/api/resume", "")
+      const response = await fetch(`${BASE_URL}/api/payment/create-checkout-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          price_id: priceId,
+          success_url: `${window.location.origin}/builder?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${window.location.origin}/pricing`,
+          user_id: user.id,
+          promo_code: discountApplied ? coupon : undefined
+        }),
+      })
+
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error(data.detail || "Failed to create checkout session")
+      }
+    } catch (error) {
+      console.error("Error redirecting to checkout:", error)
+      alert("Something went wrong. Please try again later.")
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const handleApplyCoupon = () => {
     if (coupon.toLowerCase() === "welcome10") {
       setDiscountApplied(true)
-      // Logic to actually apply discount in checkout session
     }
   }
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500">
-      <Navigation />
+    <div className="min-h-screen bg-[#f8fafc] flex relative overflow-hidden">
+      {/* Premium Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/30 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute top-[20%] right-[-5%] w-[30%] h-[50%] bg-purple-200/20 blur-[100px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[20%] w-[50%] h-[40%] bg-blue-100/40 blur-[120px] rounded-full" />
+      </div>
+
+      <Sidebar />
       
-      <main className="container mx-auto px-4 pt-32 pb-20">
-        <div className="text-center mb-16 px-4">
+      <main className="flex-1 container mx-auto px-4 py-20 lg:ml-64 relative z-10">
+        <div className="text-center mb-20 px-4">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-block px-4 py-1.5 mb-6 text-sm font-bold tracking-widest text-indigo-600 uppercase bg-indigo-50 rounded-full border border-indigo-100"
+          >
+            Pricing & Plans
+          </motion.div>
+          
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-extrabold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-blue-500"
+            className="text-5xl md:text-7xl font-black mb-6 tracking-tight text-slate-900"
           >
-            Simple, Transparent Pricing
+            Ready to <span className="text-indigo-600">level up</span>?
           </motion.h1>
+          
           <motion.p 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-xl text-muted-foreground max-w-2xl mx-auto"
+            className="text-xl text-slate-600 max-w-2xl mx-auto font-medium leading-relaxed"
           >
-            Choose the plan that's right for you and take your career to the next level.
+            Unlock the full power of AI to build, edit, and tailor your professional resume in seconds.
           </motion.p>
           
           <motion.div 
@@ -111,7 +232,7 @@ export default function PricingPage() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto px-4 pb-12">
           <AnimatePresence mode="wait">
             {plans.map((plan, index) => (
               <PricingCard
@@ -122,7 +243,9 @@ export default function PricingPage() {
                 features={plan.features}
                 isPopular={plan.isPopular}
                 billingCycle={billingCycle}
-                onSelect={() => console.log(`Selected ${plan.title}`)}
+                onSelect={() => handleSelectPlan(plan)}
+                isLoading={loading === plan.title}
+                isCurrentPlan={userPlan?.toLowerCase() === plan.title.toLowerCase()}
               />
             ))}
           </AnimatePresence>

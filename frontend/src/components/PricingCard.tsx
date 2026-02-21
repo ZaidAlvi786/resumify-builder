@@ -1,9 +1,10 @@
 "use client"
 
-import { Check } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 interface PricingCardProps {
   title: string
@@ -13,6 +14,8 @@ interface PricingCardProps {
   isPopular?: boolean
   onSelect: () => void
   billingCycle: 'monthly' | 'yearly'
+  isLoading?: boolean
+  isCurrentPlan?: boolean
 }
 
 export function PricingCard({
@@ -22,51 +25,94 @@ export function PricingCard({
   features,
   isPopular,
   onSelect,
-  billingCycle
+  billingCycle,
+  isLoading,
+  isCurrentPlan
 }: PricingCardProps) {
   return (
     <motion.div
-      whileHover={{ y: -5 }}
-      transition={{ type: "spring", stiffness: 300 }}
+      whileHover={{ y: -8, scale: isPopular ? 1.06 : 1.02 }}
+      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+      className="h-full"
     >
-      <Card className={`relative flex flex-col h-full border-2 ${isPopular ? 'border-primary shadow-xl scale-105' : 'border-border'} overflow-hidden bg-card/50 backdrop-blur-md`}>
+      <Card className={cn(
+        "relative flex flex-col h-full border-0 overflow-hidden transition-all duration-500",
+        "bg-white/10 backdrop-blur-xl supports-[backdrop-filter]:bg-white/5",
+        "shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/20",
+        isPopular && "ring-2 ring-indigo-500/50 shadow-indigo-500/20 shadow-2xl"
+      )}>
+        {/* Decorative Background Glow */}
         {isPopular && (
-          <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-sm font-bold rounded-bl-lg">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-indigo-600/20 blur-[64px] rounded-full" />
+        )}
+        
+        {isPopular && (
+          <div className="absolute top-0 right-0 bg-indigo-600 text-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest rounded-bl-xl shadow-lg">
             Best Value
           </div>
         )}
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">{title}</CardTitle>
-          <CardDescription className="text-muted-foreground">{description}</CardDescription>
+        
+        <CardHeader className="pb-2">
+          <CardTitle className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-600">
+            {title}
+          </CardTitle>
+          <CardDescription className="text-slate-500 font-medium">
+            {description}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="flex-grow">
-          <div className="mb-6">
-            <span className="text-4xl font-extrabold">{price}</span>
-            <span className="text-muted-foreground ml-1">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+
+        <CardContent className="flex-grow pt-4">
+          <div className="mb-8 flex items-baseline gap-1">
+            <span className="text-5xl font-black tracking-tight text-slate-900">{price}</span>
+            <span className="text-slate-500 font-semibold">{billingCycle === 'monthly' ? '/mo' : '/yr'}</span>
           </div>
-          <ul className="space-y-4">
-            {features.map((feature, index) => (
-              <li key={index} className="flex items-center gap-3">
-                <Check className="h-5 w-5 text-primary shrink-0" />
-                <span className="text-sm text-foreground/80">{feature}</span>
-              </li>
-            ))}
-          </ul>
+          
+          <div className="space-y-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Features</p>
+            <ul className="space-y-3">
+              {features.map((feature, index) => (
+                <li key={index} className="flex items-start gap-3 group">
+                  <div className="mt-1 flex-shrink-0 w-5 h-5 rounded-full bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                    <Check className="h-3 w-3 text-indigo-600" />
+                  </div>
+                  <span className="text-sm text-slate-600 leading-relaxed font-medium">{feature}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </CardContent>
-        <CardFooter>
+
+        <CardFooter className="pt-6">
           <Button 
             onClick={onSelect} 
             variant={isPopular ? "default" : "outline"} 
-            className="w-full font-bold py-6 group"
+            className={cn(
+              "w-full font-bold py-7 text-base rounded-xl transition-all duration-300 shadow-lg",
+              isPopular ? "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/25" : "border-slate-200 hover:bg-slate-50 hover:border-indigo-200",
+              isCurrentPlan && "bg-green-500 hover:bg-green-500 cursor-default shadow-none border-none text-white"
+            )}
+            disabled={isLoading || isCurrentPlan}
           >
-            {title === "Basic" ? "Get Started" : "Upgrade Now"}
-            <motion.span 
-              className="ml-2 inline-block"
-              initial={{ x: 0 }}
-              whileHover={{ x: 5 }}
-            >
-              →
-            </motion.span>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isCurrentPlan ? (
+              <span className="flex items-center gap-2">
+                <Check className="h-5 w-5" /> Current Plan
+              </span>
+            ) : title === "Basic" ? (
+              "Get Started for Free"
+            ) : (
+              "Upgrade to " + title
+            )}
+            {!isLoading && !isCurrentPlan && (
+              <motion.span 
+                className="ml-2"
+                animate={{ x: [0, 5, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              >
+                →
+              </motion.span>
+            )}
           </Button>
         </CardFooter>
       </Card>

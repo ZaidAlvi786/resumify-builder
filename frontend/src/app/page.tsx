@@ -6,6 +6,8 @@ import Sidebar from "@/components/Sidebar";
 import { ArrowRight, CheckCircle, Sparkles, TrendingUp, Star, Target, Briefcase } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 // Lazy load heavy components
 const Testimonials = dynamic(() => import("@/components/Testimonials"), { 
@@ -49,15 +51,24 @@ const itemVariants: Variants = {
 };
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen overflow-x-hidden" suppressHydrationWarning>
-      <Sidebar />
+  const [session, setSession] = useState<any>(null);
 
-      <motion.main
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-background transition-colors duration-500 flex" suppressHydrationWarning>
+      <Sidebar />
+      <main className="flex-1 container mx-auto px-4 py-20 lg:ml-64">
+
+      <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 flex flex-col items-center justify-center bg-slate-50 px-4 py-24 text-center lg:ml-64 w-full min-w-0"
+        className="flex flex-col items-center justify-center text-center w-full min-w-0"
       >
         <motion.div variants={itemVariants} className="max-w-4xl space-y-8">
           <div className="space-y-4">
@@ -71,14 +82,7 @@ export default function Home() {
               <span>The World's Most Advanced AI Resume Builder</span>
             </motion.div>
             
-            {/* Login Link for Returning Users */}
-            <div className="absolute top-6 right-6 z-10">
-              <Link href="/login">
-                <Button variant="ghost" className="text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-                  Already have an account? <span className="font-bold ml-1">Sign In</span>
-                </Button>
-              </Link>
-            </div>
+            {/* Redundant login removed as it's now in Sidebar */}
             
             <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight">
               The Best AI Resume Builder{" "}
@@ -231,7 +235,8 @@ export default function Home() {
         >
           © 2024 Resumify AI. Built with Next.js & OpenAI.
         </motion.footer>
-      </motion.main>
-    </div>
-  );
+      </motion.div>
+    </main>
+  </div>
+);
 }
