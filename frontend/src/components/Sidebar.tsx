@@ -22,6 +22,9 @@ import {
   LayoutDashboard,
   Target,
   Wrench,
+  User,
+  Settings,
+  CreditCard,
   DollarSign
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -75,6 +78,7 @@ export default function Sidebar() {
     { href: "/benchmark", label: "Benchmark", icon: BarChart3 },
     { href: "/translate", label: "Translate", icon: Globe },
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/pricing", label: "Billing & Plans", icon: CreditCard },
   ];
 
   const NavLink = ({ href, label, icon: Icon, onClick }: { href: string; label: string; icon: any; onClick?: () => void }) => {
@@ -96,10 +100,7 @@ export default function Sidebar() {
     );
   };
 
-  // Don't render sidebar if user is not logged in
-  if (!session) {
-    return null;
-  }
+  // Sidebar always renders now
 
   return (
     <>
@@ -148,15 +149,24 @@ export default function Sidebar() {
                 Main
               </div>
               <div className="space-y-1">
-                {mainLinks.map((link) => (
+                {session ? (
+                  mainLinks.map((link) => (
+                    <NavLink
+                      key={link.href}
+                      href={link.href}
+                      label={link.label}
+                      icon={link.icon}
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                  ))
+                ) : (
                   <NavLink
-                    key={link.href}
-                    href={link.href}
-                    label={link.label}
-                    icon={link.icon}
+                    href="/"
+                    label="Home"
+                    icon={Home}
                     onClick={() => setMobileMenuOpen(false)}
                   />
-                ))}
+                )}
               </div>
             </div>
 
@@ -166,36 +176,53 @@ export default function Sidebar() {
                 Advanced
               </div>
               <div className="space-y-1">
-                {advancedLinks.map((link) => (
+                {session ? (
+                  advancedLinks.map((link) => (
+                    <NavLink
+                      key={link.href}
+                      href={link.href}
+                      label={link.label}
+                      icon={link.icon}
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                  ))
+                ) : (
                   <NavLink
-                    key={link.href}
-                    href={link.href}
-                    label={link.label}
-                    icon={link.icon}
+                    href="/pricing"
+                    label="Pricing"
+                    icon={CreditCard}
                     onClick={() => setMobileMenuOpen(false)}
                   />
-                ))}
+                )}
               </div>
             </div>
           </nav>
 
-          {/* Logout */}
-          <div className="p-4 border-t border-slate-200">
+          {/* User Profile / Auth */}
+          <div className="p-4 border-t border-slate-200 space-y-1">
             {session ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="w-full justify-start"
-              >
-                <LogOut className="h-5 w-5 mr-3" />
-                <span>Logout</span>
-              </Button>
+              <>
+                <NavLink
+                    href="/settings"
+                    label="Settings"
+                    icon={Settings}
+                    onClick={() => setMobileMenuOpen(false)}
+                />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="w-full justify-start text-slate-700 hover:bg-red-50 hover:text-red-600"
+                >
+                    <LogOut className="h-5 w-5 mr-3" />
+                    <span>Logout</span>
+                </Button>
+              </>
             ) : (
-              <Link href="/login" className="block">
-                <Button size="sm" className="w-full justify-start">
-                  <LayoutDashboard className="h-5 w-5 mr-3" />
-                  <span>Login</span>
+              <Link href="/login" className="block w-full">
+                <Button className="w-full justify-start gap-3 bg-indigo-600 hover:bg-indigo-700 text-white">
+                  <LayoutDashboard className="h-5 w-5" />
+                  <span>Login / Sign Up</span>
                 </Button>
               </Link>
             )}
