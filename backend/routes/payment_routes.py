@@ -104,34 +104,43 @@ async def stripe_webhook(request: Request, stripe_signature: str = Header(None))
                 pass
 
             # Update user profile
-            supabase.table("profiles").update({
-                "stripe_customer_id": customer_id,
-                "plan": plan_name,
-                "credits": credits
-            }).eq("id", user_id).execute()
+            if supabase:
+                supabase.table("profiles").update({
+                    "stripe_customer_id": customer_id,
+                    "plan": plan_name,
+                    "credits": credits
+                }).eq("id", user_id).execute()
+            else:
+                print("Error: Supabase client not initialized. Plan not updated.")
             
             # Record subscription details
-            if subscription_id:
-                subscription = stripe.Subscription.retrieve(subscription_id)
-                supabase.table("subscriptions").upsert({
-                    "user_id": user_id,
-                    "stripe_subscription_id": subscription_id,
-                    "status": subscription.status,
-                    "price_id": subscription['items']['data'][0]['price']['id'],
-                    "current_period_start": datetime.fromtimestamp(subscription.current_period_start).isoformat(),
-                    "current_period_end": datetime.fromtimestamp(subscription.current_period_end).isoformat(),
-                }).execute()
-                
+            if subscription_id and supabase:
+                try:
+                    subscription = stripe.Subscription.retrieve(subscription_id)
+                    supabase.table("subscriptions").upsert({
+                        "user_id": user_id,
+                        "stripe_subscription_id": subscription_id,
+                        "status": subscription.get('status'),
+                        "price_id": subscription.get('items', {}).get('data', [{}])[0].get('price', {}).get('id'),
+                        "current_period_start": datetime.fromtimestamp(subscription.get('current_period_start', 0)).isoformat() if subscription.get('current_period_start') else None,
+                        "current_period_end": datetime.fromtimestamp(subscription.get('current_period_end', 0)).isoformat() if subscription.get('current_period_end') else None,
+                    }).execute()
+                except Exception as sub_err:
+                    print(f"Error recording subscription details: {str(sub_err)}")
+                    
     elif event['type'] == 'invoice.paid':
         invoice = event['data']['object']
         subscription_id = invoice.get('subscription')
-        if subscription_id:
-            subscription = stripe.Subscription.retrieve(subscription_id)
-            supabase.table("subscriptions").update({
-                "status": subscription.status,
-                "current_period_start": datetime.fromtimestamp(subscription.current_period_start).isoformat(),
-                "current_period_end": datetime.fromtimestamp(subscription.current_period_end).isoformat(),
-            }).eq("stripe_subscription_id", subscription_id).execute()
+        if subscription_id and supabase:
+            try:
+                subscription = stripe.Subscription.retrieve(subscription_id)
+                supabase.table("subscriptions").update({
+                    "status": subscription.get('status'),
+                    "current_period_start": datetime.fromtimestamp(subscription.get('current_period_start', 0)).isoformat() if subscription.get('current_period_start') else None,
+                    "current_period_end": datetime.fromtimestamp(subscription.get('current_period_end', 0)).isoformat() if subscription.get('current_period_end') else None,
+                }).eq("stripe_subscription_id", subscription_id).execute()
+            except Exception as inv_err:
+                print(f"Error updating subscription on invoice.paid: {str(inv_err)}")
             
     elif event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
