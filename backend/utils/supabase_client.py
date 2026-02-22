@@ -8,9 +8,9 @@ load_dotenv()
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-if not supabase_url or not supabase_key:
-    # We'll log a warning but not raise an error immediately to allow the app to start
-    # even if these aren't configured yet (e.g. during initial setup)
-    print("Warning: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set in .env")
+if not supabase_url:
+    print("CRITICAL: SUPABASE_URL is not set in backend/.env")
+if not supabase_key:
+    print("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is not set in backend/.env")
 
 supabase: Client = create_client(supabase_url or "", supabase_key or "") if supabase_url and supabase_key else None
