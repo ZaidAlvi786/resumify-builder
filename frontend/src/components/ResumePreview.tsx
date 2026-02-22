@@ -3,17 +3,18 @@ import { ResumeData } from "@/services/api";
 import { Button } from "@/components/ui/button";
 import { Download, Printer, ArrowLeft, FileDown, ChevronDown, Sparkles } from "lucide-react";
 import { exportToPDF, exportToWord, exportToHTML, exportToTXT } from "@/lib/exportResume";
-import { ResumeTemplateComponent, ResumeTemplate } from "@/components/templates/ResumeTemplates";
+import { ResumeTemplateComponent, ResumeTemplate, ResumeThemes } from "@/components/templates/ResumeTemplates";
 import BulletRewriter from "@/components/BulletRewriter";
 
 interface ResumePreviewProps {
     data: ResumeData;
     onEdit: () => void;
     template?: ResumeTemplate;
+    theme?: string;
     onDataUpdate?: (updatedData: ResumeData) => void;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ data, onEdit, template, onDataUpdate }) => {
+const ResumePreview: React.FC<ResumePreviewProps> = ({ data, onEdit, template, theme, onDataUpdate }) => {
     const resumeRef = useRef<HTMLDivElement>(null);
     const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const [resumeData, setResumeData] = useState<ResumeData>(data);
@@ -127,7 +128,8 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, onEdit, template, o
             >
                 <ResumeTemplateComponent 
                     data={resumeData} 
-                    template={template || "modern"}
+                    template={(template as any) || "modern"}
+                    theme={theme ? ResumeThemes[theme] : undefined}
                     onBulletUpdate={handleBulletUpdate}
                     isEditable={true}
                 />
