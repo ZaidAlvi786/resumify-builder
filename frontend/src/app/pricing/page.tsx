@@ -1,16 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { PricingCard } from "@/components/PricingCard"
-import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, Loader2 } from "lucide-react"
+import { Check, Loader2, X } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
@@ -18,54 +18,72 @@ export default function PricingPage() {
   const [discountApplied, setDiscountApplied] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
   const [userPlan, setUserPlan] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    let retries = 0;
-    const MAX_RETRIES = 10;
+  const fetchInterval = useRef<NodeJS.Timeout | null>(null)
+  const retries = useRef(0)
+  const MAX_RETRIES = 15
 
-    async function getProfile(isRetry = false) {
+  const getProfile = useCallback(async (isRetry = false) => {
+    if (isRetry) setIsSyncing(true)
+    
+    try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('plan')
           .eq('id', user.id)
           .single()
         
         if (profile) {
-          const fetchedPlan = profile.plan?.toLowerCase() || 'free'
+          const fetchedPlan = profile.plan?.toLowerCase().trim() || 'free'
+          console.log("Current plan in DB:", fetchedPlan)
           setUserPlan(fetchedPlan)
           
-          if (fetchedPlan === 'free' && isRetry) {
-            retries++;
-            if (retries >= MAX_RETRIES) {
-              if (interval) clearInterval(interval)
+          if (fetchedPlan !== 'free') {
+            setIsSyncing(false)
+            if (fetchInterval.current) {
+              clearInterval(fetchInterval.current)
+              fetchInterval.current = null
             }
-          } else if (fetchedPlan !== 'free') {
-            if (interval) clearInterval(interval)
+          } else if (isRetry) {
+            retries.current++;
+            if (retries.current >= MAX_RETRIES) {
+              setIsSyncing(false)
+              if (fetchInterval.current) {
+                clearInterval(fetchInterval.current)
+                fetchInterval.current = null
+              }
+            }
           }
         }
       }
-    }
-    
-    getProfile()
-    
-    // Check if we just came back from a checkout success
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('session_id')) {
-      interval = setInterval(() => getProfile(true), 3000)
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval)
+    } catch (err) {
+      console.error("Error fetching profile:", err)
     }
   }, [])
 
+  useEffect(() => {
+    getProfile()
+    
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      setShowSuccess(true)
+      getProfile(true) 
+      fetchInterval.current = setInterval(() => getProfile(true), 3000)
+    }
+    
+    return () => {
+      if (fetchInterval.current) clearInterval(fetchInterval.current)
+    }
+  }, [getProfile])
+
   const plans = [
     {
-      title: "Basic",
+      title: "Free",
       monthlyPrice: "$0",
       yearlyPrice: "$0",
       description: "Perfect for students and beginners",
@@ -108,7 +126,7 @@ export default function PricingPage() {
   ]
 
   const handleSelectPlan = async (plan: any) => {
-    if (plan.title === "Basic") {
+    if (plan.title === "Free") {
       router.push("/builder")
       return
     }
@@ -144,7 +162,7 @@ export default function PricingPage() {
         },
         body: JSON.stringify({
           price_id: priceId,
-          success_url: `${window.location.origin}/builder?session_id={CHECKOUT_SESSION_ID}`,
+          success_url: `${window.location.origin}/pricing?session_id={CHECKOUT_SESSION_ID}&success=true`,
           cancel_url: `${window.location.origin}/pricing`,
           user_id: user.id,
           promo_code: discountApplied ? coupon : undefined
@@ -183,6 +201,56 @@ export default function PricingPage() {
       <Sidebar />
       
       <main className="flex-1 container mx-auto px-4 py-20 lg:ml-64 relative z-10">
+        <AnimatePresence>
+          {showSuccess && (
+            <motion.div
+              initial={{ opacity: 0, y: -50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -50 }}
+              className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-full max-w-lg px-4"
+            >
+              <div className="bg-green-600 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between border border-green-500">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
+                    <Check className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="font-bold">Payment Successful!</p>
+                    <p className="text-xs text-green-50 opacity-90">
+                      {isSyncing ? "Syncing your new plan status... please wait" : "Your account has been upgraded successfully!"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+                    onClick={() => getProfile(true)}
+                    disabled={isSyncing}
+                  >
+                    {isSyncing ? "Checking..." : "Check Status"}
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-white hover:bg-white/10"
+                    onClick={() => {
+                      const url = new URL(window.location.href);
+                      url.searchParams.delete('success');
+                      url.searchParams.delete('session_id');
+                      window.history.replaceState({}, '', url);
+                      router.refresh();
+                    }}
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="text-center mb-20 px-4">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -213,22 +281,44 @@ export default function PricingPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="flex items-center justify-center gap-4 mt-12 mb-8"
+            className="flex flex-col items-center gap-6 mt-12 mb-8"
           >
-            <Label className={`text-lg cursor-pointer ${billingCycle === 'monthly' ? 'text-foreground' : 'text-muted-foreground'}`} onClick={() => setBillingCycle('monthly')}>Monthly</Label>
-            <Switch 
-              checked={billingCycle === 'yearly'} 
-              onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')} 
-            />
-            <div className="flex flex-col items-start gap-1">
-                <Label className={`text-lg cursor-pointer ${billingCycle === 'yearly' ? 'text-foreground' : 'text-muted-foreground'}`} onClick={() => setBillingCycle('yearly')}>Yearly</Label>
-                <motion.span 
-                  animate={{ scale: billingCycle === 'yearly' ? 1.05 : 1 }}
-                  className="bg-primary/20 text-primary text-xs font-bold px-2 py-0.5 rounded-full"
-                >
-                  Save 10%
-                </motion.span>
+            <div className="relative p-1.5 bg-slate-100 rounded-2xl flex items-center w-72 h-16 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] border border-slate-200">
+              <motion.div
+                className="absolute h-[calc(100%-12px)] rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20 w-[calc(50%-6px)]"
+                animate={{ x: billingCycle === 'monthly' ? 0 : '100%' }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={cn(
+                  "relative flex-1 text-sm font-black transition-colors duration-300 h-full rounded-xl z-10",
+                  billingCycle === 'monthly' ? "text-white" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                MONTHLY
+              </button>
+              <button
+                onClick={() => setBillingCycle('yearly')}
+                className={cn(
+                  "relative flex-1 text-sm font-black transition-colors duration-300 h-full rounded-xl z-10",
+                  billingCycle === 'yearly' ? "text-white" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                YEARLY
+              </button>
             </div>
+            
+            {billingCycle === 'yearly' && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-2 px-4 py-1.5 bg-green-500 text-white rounded-full shadow-lg shadow-green-500/20 border border-green-400"
+              >
+                <Check className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Save 10% With Yearly</span>
+              </motion.div>
+            )}
           </motion.div>
         </div>
 
