@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import LogoLoader from "@/components/ui/LogoLoader";
 import ResumeVersionHistory from "@/components/ResumeVersionHistory";
 import { industryTemplates } from "@/lib/industryTemplates";
-import TemplateSelector, { ResumeTemplate } from "@/components/TemplateSelector";
+import TemplateGallery from "@/components/TemplateGallery";
 import ResumeUpload from "@/components/ResumeUpload";
 
 const steps = ["Personal", "Experience", "Skills", "Preview"];
@@ -28,7 +28,8 @@ interface SavedResume {
 
 export default function ResumeBuilder() {
     const [currentStep, setCurrentStep] = useState(0);
-    const [selectedTemplate, setSelectedTemplate] = useState<"modern" | "classic" | "minimalist" | "executive" | "creative">("modern");
+    const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
+    const [selectedTheme, setSelectedTheme] = useState<string>("Midnight Blue");
     const [isLoading, setIsLoading] = useState(false);
     const [generatedResume, setGeneratedResume] = useState<ResumeData | null>(null);
     const [resumeId, setResumeId] = useState<string | null>(null);
@@ -359,19 +360,26 @@ export default function ResumeBuilder() {
 
             {/* Preview Section - Only visible at the end or side-by-side if we implemented split view */}
             {currentStep === 3 && generatedResume && (
-                <div className="lg:col-span-8 space-y-6 animate-in fade-in zoom-in-95 duration-500">
-                    {/* Template Selector */}
-                    <Card>
-                        <CardContent className="pt-6">
-                            <TemplateSelector
-                                type="resume"
-                                selectedTemplate={selectedTemplate}
-                                onSelect={(template) => setSelectedTemplate(template as ResumeTemplate)}
-                            />
-                        </CardContent>
-                    </Card>
+                <div className="lg:col-span-8 flex flex-col lg:flex-row gap-6 animate-in fade-in zoom-in-95 duration-500">
+                    <div className="flex-1 space-y-6">
+                        <ResumePreview 
+                            data={generatedResume} 
+                            onEdit={() => setCurrentStep(0)} 
+                            template={selectedTemplate as any} 
+                            theme={selectedTheme}
+                        />
+                    </div>
                     
-                    <ResumePreview data={generatedResume} onEdit={() => setCurrentStep(0)} template={selectedTemplate} />
+                    <div className="w-full lg:w-80 flex-shrink-0">
+                        <TemplateGallery
+                            currentTemplate={selectedTemplate}
+                            currentTheme={selectedTheme}
+                            onSelect={(template, theme) => {
+                                setSelectedTemplate(template);
+                                setSelectedTheme(theme);
+                            }}
+                        />
+                    </div>
                     
                     {/* Version History */}
                     {resumeId && (
