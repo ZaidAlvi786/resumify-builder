@@ -91,15 +91,7 @@ const SalaryNegotiationSimulator = () => {
             // Let's assume it returns { content: string } or similar standard format.
             // Actually, looking at `api.ts`, it seems it returns the full JSON.
             
-           let aiContent = "";
-           if (response.message) {
-               aiContent = response.message;
-           } else if (response.choices && response.choices[0]) {
-               aiContent = response.choices[0].message.content;
-           } else {
-               aiContent = "I'm considering your point...";
-           }
-
+            const aiContent = response.message || "I'm considering your point...";
             const aiMessage: ChatMessage = { role: "assistant", content: aiContent };
             setMessages(prev => [...prev, aiMessage]);
         } catch (error) {
