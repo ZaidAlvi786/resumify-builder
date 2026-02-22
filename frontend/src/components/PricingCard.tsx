@@ -39,7 +39,8 @@ export function PricingCard({
         "relative flex flex-col h-full border-0 overflow-hidden transition-all duration-500",
         "bg-white/10 backdrop-blur-xl supports-[backdrop-filter]:bg-white/5",
         "shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] border border-white/20",
-        isPopular && "ring-2 ring-indigo-500/50 shadow-indigo-500/20 shadow-2xl"
+        isPopular && "ring-2 ring-indigo-500/50 shadow-indigo-500/20 shadow-2xl",
+        isCurrentPlan && "ring-2 ring-green-500/50 border-green-500/30 bg-green-50/5"
       )}>
         {/* Decorative Background Glow */}
         {isPopular && (
@@ -89,17 +90,25 @@ export function PricingCard({
             className={cn(
               "w-full font-bold py-7 text-base rounded-xl transition-all duration-300 shadow-lg",
               isPopular ? "bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-500/25" : "border-slate-200 hover:bg-slate-50 hover:border-indigo-200",
-              isCurrentPlan && "bg-green-500 hover:bg-green-500 cursor-default shadow-none border-none text-white"
+              isCurrentPlan && "bg-green-600 hover:bg-green-700 cursor-default shadow-none border-none text-white ring-4 ring-green-100/50"
             )}
             disabled={isLoading || isCurrentPlan}
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : isCurrentPlan ? (
-              <span className="flex items-center gap-2">
-                <Check className="h-5 w-5" /> Current Plan
-              </span>
-            ) : title === "Basic" ? (
+              <motion.span 
+                initial={{ scale: 0.9 }}
+                animate={{ scale: [0.95, 1, 0.95] }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className="flex items-center justify-center gap-3 w-full"
+              >
+                <div className="h-6 w-6 bg-white/20 rounded-full flex items-center justify-center">
+                    <Check className="h-4 w-4 text-white" />
+                </div>
+                YOUR CURRENT PLAN
+              </motion.span>
+            ) : title === "Free" ? (
               "Get Started for Free"
             ) : (
               "Upgrade to " + title
