@@ -651,53 +651,54 @@ export const chatWithAIAgent = async (
     throw new Error(error.detail || "Failed to chat with AI agent");
   }
 
-  if (onChunk || onSuggestions) {
-    const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
-    
-    if (reader) {
-      let buffer = "";
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let fullMessage = "";
+  let finalSuggestions: string[] = [];
+
+  if (reader) {
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || "";
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
           
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split('\n');
-          
-          // Keep the last potentially incomplete line in buffer
-          buffer = lines.pop() || "";
-          
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) continue;
-            
-            try {
-              const data = JSON.parse(trimmedLine);
-              if (data.message && onChunk) onChunk(data.message);
-              if (data.suggestions && onSuggestions) onSuggestions(data.suggestions);
-            } catch (e) {
-              console.warn("Retrying JSON parse for fragmented chunk:", trimmedLine);
-              // If it's not valid JSON yet, it might be a partial line that split across chunks
-              // We append it back to the buffer to be processed with the next chunk
-              buffer = trimmedLine + buffer;
+          try {
+            const data = JSON.parse(trimmedLine);
+            if (data.message) {
+              fullMessage += data.message;
+              if (onChunk) onChunk(data.message);
             }
+            if (data.suggestions) {
+              finalSuggestions = data.suggestions;
+              if (onSuggestions) onSuggestions(data.suggestions);
+            }
+          } catch (e) {
+            console.warn("Fragmented chunk handled:", trimmedLine);
+            buffer = trimmedLine + buffer;
           }
         }
-      } catch (e: any) {
-        if (e.name === 'AbortError') {
-          console.log('Stream aborted');
-        } else {
-          throw e;
-        }
-      } finally {
-        reader.releaseLock();
       }
+    } catch (e: any) {
+      if (e.name === 'AbortError') {
+        console.log('Stream aborted');
+      } else {
+        throw e;
+      }
+    } finally {
+      reader.releaseLock();
     }
-    return { message: "", suggestions: [] };
   }
 
-  return response.json();
+  return { message: fullMessage, suggestions: finalSuggestions };
 };
 
 
