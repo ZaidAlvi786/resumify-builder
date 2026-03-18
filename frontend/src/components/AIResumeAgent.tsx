@@ -248,6 +248,8 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                         return updated;
                     });
                 },
+                undefined,
+                undefined,
                 controller.signal
             );
         } catch (error: any) {
