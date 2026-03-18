@@ -8,3 +8,4 @@ pdfplumber
 stripe
 python-dotenv
 supabase
+python-docx
