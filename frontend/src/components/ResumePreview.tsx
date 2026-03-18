@@ -46,7 +46,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({ data, onEdit, template, t
                     await exportToPDF(resumeData);
                     break;
                 case 'word':
-                    exportToWord(resumeData);
+                    await exportToWord(resumeData);
                     break;
                 case 'html':
                     exportToHTML(resumeData);
