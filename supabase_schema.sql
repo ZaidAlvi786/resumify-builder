@@ -168,3 +168,113 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==========================================
+-- AI MEMORY SYSTEM TABLES
+-- ==========================================
+
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- Create conversations table for chat sessions
+CREATE TABLE IF NOT EXISTS chat_conversations (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT,
+    metadata JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create messages table with embedding support
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    content TEXT NOT NULL,
+    tokens INTEGER,
+    embedding vector(768), -- Gemini embedding-001 use 768 dimensions
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create conversation summaries table
+CREATE TABLE IF NOT EXISTS chat_summaries (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    last_message_id UUID REFERENCES chat_messages(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create user long-term memory table
+CREATE TABLE IF NOT EXISTS user_memories (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    fact_type TEXT NOT NULL, -- e.g., 'preference', 'tech_stack', 'project_config'
+    content TEXT NOT NULL,
+    confidence FLOAT DEFAULT 1.0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Create indexes for vector search and performance
+CREATE INDEX IF NOT EXISTS idx_chat_messages_conv_id ON chat_messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_embedding ON chat_messages USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX IF NOT EXISTS idx_user_memories_user_id ON user_memories(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id ON chat_conversations(user_id);
+
+-- RLS for AI memory tables
+ALTER TABLE chat_conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_summaries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_memories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can manage their own chat_conversations" 
+    ON chat_conversations FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their own chat_messages" 
+    ON chat_messages FOR ALL 
+    USING (EXISTS (SELECT 1 FROM chat_conversations WHERE id = chat_messages.conversation_id AND user_id = auth.uid()));
+
+CREATE POLICY "Users can manage their own chat_summaries" 
+    ON chat_summaries FOR ALL 
+    USING (EXISTS (SELECT 1 FROM chat_conversations WHERE id = chat_summaries.conversation_id AND user_id = auth.uid()));
+
+CREATE POLICY "Users can manage their own user_memories" 
+    ON user_memories FOR ALL USING (auth.uid() = user_id);
+
+-- Update trigger for chat_conversations
+CREATE TRIGGER update_chat_conversations_updated_at
+    BEFORE UPDATE ON chat_conversations
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Vector similarity search function
+CREATE OR REPLACE FUNCTION match_chat_messages (
+  query_embedding vector(768),
+  match_threshold float,
+  match_count int,
+  p_conversation_id uuid
+)
+RETURNS TABLE (
+  id uuid,
+  content text,
+  role text,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    m.id,
+    m.content,
+    m.role,
+    1 - (m.embedding <=> query_embedding) AS similarity
+  FROM chat_messages m
+  WHERE m.conversation_id = p_conversation_id
+    AND 1 - (m.embedding <=> query_embedding) > match_threshold
+  ORDER BY m.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
