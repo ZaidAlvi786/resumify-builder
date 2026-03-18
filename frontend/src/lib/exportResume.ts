@@ -1,4 +1,4 @@
-import { ResumeData } from "@/services/api";
+import { ResumeData, exportResumeDocx } from "@/services/api";
 
 export async function exportToPDF(resumeData: ResumeData) {
     // Using html2pdf library for PDF export
@@ -34,17 +34,21 @@ export async function exportToPDF(resumeData: ResumeData) {
     }
 }
 
-export function exportToWord(resumeData: ResumeData) {
-    const htmlContent = generateHTML(resumeData);
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${resumeData.full_name}_Resume.doc`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+export async function exportToWord(resumeData: ResumeData) {
+    try {
+        const blob = await exportResumeDocx(resumeData);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${resumeData.full_name || 'Resume'}_Resume.docx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Word export error:', error);
+        throw new Error('Failed to generate Word document. Please try again.');
+    }
 }
 
 export function exportToHTML(resumeData: ResumeData) {
