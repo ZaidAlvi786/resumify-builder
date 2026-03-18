@@ -1,6 +1,7 @@
-# backend/services/parser_service.py
 import pdfplumber
+import docx
 from fastapi import UploadFile
+import io
 
 async def extract_text_from_pdf(file: UploadFile) -> str:
     """
@@ -19,3 +20,22 @@ async def extract_text_from_pdf(file: UploadFile) -> str:
     except Exception as e:
         print(f"Error parsing PDF: {e}")
         raise ValueError("Failed to extract text from PDF")
+
+async def extract_text_from_docx(file: UploadFile) -> str:
+    """
+    Extracts text content from an uploaded DOCX file.
+    """
+    try:
+        # Read file content into memory
+        content = await file.read()
+        doc = docx.Document(io.BytesIO(content))
+        
+        text_content = []
+        for para in doc.paragraphs:
+            if para.text:
+                text_content.append(para.text)
+        
+        return "\n".join(text_content).strip()
+    except Exception as e:
+        print(f"Error parsing DOCX: {e}")
+        raise ValueError("Failed to extract text from Word document")
