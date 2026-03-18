@@ -50,6 +50,22 @@ export const generateResume = async (data: ResumeData) => {
     return response.json();
 };
 
+export const exportResumeDocx = async (data: ResumeData) => {
+    const response = await fetch(`${API_URL}/export-docx`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to export Word document");
+    }
+
+    return response.blob();
+};
+
 // AI Career Trend Analyzer
 
 export interface SkillTrend {
@@ -631,17 +647,21 @@ export const chatWithAIAgent = async (
   context?: string,
   onChunk?: (content: string) => void,
   onSuggestions?: (suggestions: string[]) => void,
+  userId?: string,
+  conversationId?: string,
   signal?: AbortSignal
 ) => {
-  const response = await fetch(`${API_URL}/chat`, {
+  const response = await fetch("/api/ai/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       messages,
-      resume_data: resumeData,
+      resumeData,
       context,
+      userId,
+      conversationId,
     }),
     signal,
   });
