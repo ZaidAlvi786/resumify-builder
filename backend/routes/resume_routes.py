@@ -35,7 +35,8 @@ from services.ai_service import (
     quantify_achievement, generate_summary_variations,
     expand_keyword_synonyms,     generate_multi_resume_portfolio,     analyze_skill_gaps_with_learning_paths,     analyze_career_trends, simulate_salary_negotiation
 )
-from services.parser_service import extract_text_from_pdf
+from services.parser_service import extract_text_from_pdf, extract_text_from_docx
+from services.docx_service import generate_docx_resume
 
 router = APIRouter()
 
@@ -64,12 +65,18 @@ async def review_resume(
     text_to_review = resume_text or ""
     
     if file:
-        if file.content_type != "application/pdf":
-            raise HTTPException(status_code=400, detail="Only PDF files are supported.")
-        try:
-            text_to_review = await extract_text_from_pdf(file)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
+        if file.content_type == "application/pdf":
+            try:
+                text_to_review = await extract_text_from_pdf(file)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+        elif file.content_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"]:
+            try:
+                text_to_review = await extract_text_from_docx(file)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF or Word document.")
     
     if not text_to_review:
         raise HTTPException(status_code=400, detail="Please provide either a file or text to review.")
