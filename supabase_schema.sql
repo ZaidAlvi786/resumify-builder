@@ -278,3 +278,122 @@ BEGIN
   LIMIT match_count;
 END;
 $$;
+
+-- ==========================================
+-- TAILORING / SKELETON / EXTENSION / APPLICATIONS / INTEGRATIONS
+-- Mirrors the per-migration files under supabase/migrations/. Keep in sync.
+-- ==========================================
+
+-- base_profiles: source-of-truth career history (one row per user).
+CREATE TABLE IF NOT EXISTS base_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  content JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_base_profiles_user_id ON base_profiles(user_id);
+ALTER TABLE base_profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "base_profiles select own" ON base_profiles;
+DROP POLICY IF EXISTS "base_profiles insert own" ON base_profiles;
+DROP POLICY IF EXISTS "base_profiles update own" ON base_profiles;
+DROP POLICY IF EXISTS "base_profiles delete own" ON base_profiles;
+CREATE POLICY "base_profiles select own" ON base_profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "base_profiles insert own" ON base_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "base_profiles update own" ON base_profiles FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "base_profiles delete own" ON base_profiles FOR DELETE USING (auth.uid() = user_id);
+DROP TRIGGER IF EXISTS update_base_profiles_updated_at ON base_profiles;
+CREATE TRIGGER update_base_profiles_updated_at
+  BEFORE UPDATE ON base_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- jd_cache: deterministic JD-analysis cache keyed by sha256(jd_text). No RLS.
+CREATE TABLE IF NOT EXISTS jd_cache (
+  hash TEXT PRIMARY KEY,
+  analysis JSONB NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_jd_cache_created_at ON jd_cache(created_at);
+
+-- extension_handoffs: 10-min single-use tokens for the Chrome extension.
+CREATE TABLE IF NOT EXISTS extension_handoffs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('tailor','skeleton','save')),
+  job_description TEXT NOT NULL,
+  job_url TEXT,
+  company TEXT,
+  role TEXT,
+  used_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_extension_handoffs_user_id ON extension_handoffs(user_id);
+CREATE INDEX IF NOT EXISTS idx_extension_handoffs_expires_at ON extension_handoffs(expires_at);
+ALTER TABLE extension_handoffs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "extension_handoffs select own" ON extension_handoffs;
+CREATE POLICY "extension_handoffs select own" ON extension_handoffs FOR SELECT USING (auth.uid() = user_id);
+
+-- applications: job-application tracker (soft-deleted rows hidden by RLS).
+CREATE TABLE IF NOT EXISTS applications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  company TEXT NOT NULL,
+  role TEXT NOT NULL,
+  job_category TEXT,
+  job_url TEXT,
+  resume_id UUID REFERENCES resumes(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'saved'
+    CHECK (status IN ('saved','applied','interviewing','offer','rejected','withdrawn')),
+  applied_at TIMESTAMPTZ,
+  notes TEXT,
+  jd_hash TEXT,
+  deleted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_applications_user_created ON applications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_applications_user_status ON applications(user_id, status);
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "applications select own" ON applications;
+DROP POLICY IF EXISTS "applications insert own" ON applications;
+DROP POLICY IF EXISTS "applications update own" ON applications;
+DROP POLICY IF EXISTS "applications delete own" ON applications;
+CREATE POLICY "applications select own"
+  ON applications FOR SELECT USING (auth.uid() = user_id AND deleted_at IS NULL);
+CREATE POLICY "applications insert own"
+  ON applications FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "applications update own"
+  ON applications FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "applications delete own"
+  ON applications FOR DELETE USING (auth.uid() = user_id);
+DROP TRIGGER IF EXISTS update_applications_updated_at ON applications;
+CREATE TRIGGER update_applications_updated_at
+  BEFORE UPDATE ON applications
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- google_integrations: per-user Google Sheets connection state.
+CREATE TABLE IF NOT EXISTS google_integrations (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  spreadsheet_id TEXT NOT NULL,
+  refresh_token_encrypted TEXT NOT NULL,
+  scopes TEXT[] NOT NULL,
+  connected_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+ALTER TABLE google_integrations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "google_integrations select own" ON google_integrations;
+CREATE POLICY "google_integrations select own"
+  ON google_integrations FOR SELECT USING (auth.uid() = user_id);
+
+-- google_oauth_states: short-lived OAuth state + PKCE verifier holding pen.
+CREATE TABLE IF NOT EXISTS google_oauth_states (
+  state TEXT PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  code_verifier TEXT NOT NULL,
+  return_url TEXT,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+CREATE INDEX IF NOT EXISTS idx_google_oauth_states_user ON google_oauth_states(user_id);
+CREATE INDEX IF NOT EXISTS idx_google_oauth_states_expires ON google_oauth_states(expires_at);
