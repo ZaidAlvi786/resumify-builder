@@ -28,9 +28,9 @@ export const experienceSchema = z.object({
   location: z.string().optional(),
   start_date: ymOrIsoDate,
   end_date: ymOrIsoDate.nullable().optional(),
-  is_current: z.boolean().default(false),
-  bullets: z.array(z.string()).default([]),
-  tech_stack: z.array(z.string()).default([]),
+  is_current: z.boolean(),
+  bullets: z.array(z.string()),
+  tech_stack: z.array(z.string()),
 });
 
 export const educationSchema = z.object({
@@ -40,7 +40,7 @@ export const educationSchema = z.object({
   location: z.string().optional(),
   start_date: ymOrIsoDate.optional(),
   end_date: ymOrIsoDate.optional(),
-  is_current: z.boolean().default(false),
+  is_current: z.boolean(),
   gpa: z.string().optional(),
   notes: z.string().optional(),
 });
@@ -56,8 +56,8 @@ export const projectSchema = z.object({
   name: z.string().min(1),
   role: z.string().optional(),
   description: z.string().optional(),
-  bullets: z.array(z.string()).default([]),
-  tech_stack: z.array(z.string()).default([]),
+  bullets: z.array(z.string()),
+  tech_stack: z.array(z.string()),
   url: z.string().optional(),
   start_date: ymOrIsoDate.optional(),
   end_date: ymOrIsoDate.optional(),
@@ -79,13 +79,13 @@ export const languageSchema = z.object({
 
 export const baseProfileSchema = z.object({
   personal: personalInfoSchema,
-  links: z.array(linkSchema).default([]),
-  experience: z.array(experienceSchema).default([]),
-  education: z.array(educationSchema).default([]),
-  skills: z.array(skillItemSchema).default([]),
-  projects: z.array(projectSchema).default([]),
-  certifications: z.array(certificationSchema).default([]),
-  languages: z.array(languageSchema).default([]),
+  links: z.array(linkSchema),
+  experience: z.array(experienceSchema),
+  education: z.array(educationSchema),
+  skills: z.array(skillItemSchema),
+  projects: z.array(projectSchema),
+  certifications: z.array(certificationSchema),
+  languages: z.array(languageSchema),
 });
 
 export const baseProfilePatchSchema = z.object({
