@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
+import ExtensionTokenSync from "@/components/ExtensionTokenSync";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
@@ -30,6 +31,7 @@ export default function RootLayout({
         className={`${spaceGrotesk.variable} ${inter.variable} font-sans antialiased overflow-x-hidden`}
         suppressHydrationWarning
       >
+        <ExtensionTokenSync />
         {children}
       </body>
     </html>

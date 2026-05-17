@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Resumify — JD Capture",
+  "version": "0.1.0",
+  "description": "Capture a job description from any job board and tailor your resume with Resumify.",
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Resumify"
+  },
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
+  },
+  "permissions": ["activeTab", "storage", "cookies"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/extract.ts"],
+      "run_at": "document_idle"
+    }
+  ]
+}

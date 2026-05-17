@@ -9,3 +9,6 @@ stripe
 python-dotenv
 supabase
 python-docx
+openpyxl
+httpx
+cryptography
