@@ -22,6 +22,7 @@ import {
     Search
 } from "lucide-react";
 import { chatWithAIAgent, ChatMessage, ResumeData } from "@/services/api";
+import { supabase } from "@/lib/supabase";
 
 interface Message {
     id: string;
@@ -34,6 +35,8 @@ interface Message {
 
 interface ChatSession {
     id: string;
+    /** Stable UUID used as the server-side chat_conversations row id. */
+    conversationId: string;
     title: string;
     messages: Message[];
     lastUpdated: Date;
@@ -61,6 +64,7 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
     const createNewSession = useCallback(() => {
         const newSession: ChatSession = {
             id: Date.now().toString(),
+            conversationId: crypto.randomUUID(),
             title: "New Chat",
             messages: [
                 {
@@ -84,6 +88,8 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                 const parsed = JSON.parse(savedSessions);
                 const restoredSessions = parsed.map((s: any) => ({
                     ...s,
+                    // Older saved sessions predate conversationId — backfill one.
+                    conversationId: s.conversationId || crypto.randomUUID(),
                     lastUpdated: new Date(s.lastUpdated),
                     messages: s.messages.map((m: any) => ({
                         ...m,
@@ -109,6 +115,7 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                 }));
                 const initialSession: ChatSession = {
                     id: Date.now().toString(),
+                    conversationId: crypto.randomUUID(),
                     title: messages[0]?.content.substring(0, 30) || "Previous Chat",
                     messages,
                     lastUpdated: new Date()
@@ -218,6 +225,8 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                 content: m.content,
             }));
 
+            const { data: { session: authSession } } = await supabase.auth.getSession();
+
             await chatWithAIAgent(
                 apiMessages,
                 resumeData,
@@ -248,8 +257,9 @@ const AIResumeAgent: React.FC<AIResumeAgentProps> = ({ onQuickAction, resumeData
                         return updated;
                     });
                 },
-                undefined,
-                undefined,
+                authSession?.user?.id,
+                activeSession?.conversationId,
+                authSession?.access_token,
                 controller.signal
             );
         } catch (error: any) {
