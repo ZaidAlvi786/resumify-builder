@@ -3,7 +3,16 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from routes import resume_routes, payment_routes, base_profile_routes
+from routes import (
+    resume_routes,
+    payment_routes,
+    base_profile_routes,
+    skeleton_routes,
+    tailoring_routes,
+    applications_routes,
+    integrations_routes,
+    extension_routes,
+)
 
 load_dotenv()
 
@@ -42,6 +51,11 @@ app.add_middleware(
 app.include_router(resume_routes.router, prefix="/api/resume", tags=["Resume"])
 app.include_router(payment_routes.router, prefix="/api/payment", tags=["Payment"])
 app.include_router(base_profile_routes.router, prefix="/api/base-profile", tags=["BaseProfile"])
+app.include_router(skeleton_routes.router, prefix="/api/resume", tags=["Skeleton"])
+app.include_router(tailoring_routes.router, prefix="/api/resume", tags=["Tailoring"])
+app.include_router(applications_routes.router, prefix="/api/applications", tags=["Applications"])
+app.include_router(integrations_routes.router, prefix="/api/integrations", tags=["Integrations"])
+app.include_router(extension_routes.router, prefix="/api/extension", tags=["Extension"])
 
 @app.get("/")
 def read_root():
