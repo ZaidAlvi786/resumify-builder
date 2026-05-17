@@ -10,6 +10,7 @@ from typing import Optional
 
 from fastapi import Header, HTTPException, status
 
+from utils.logging import set_request_user
 from utils.supabase_client import supabase
 
 
@@ -51,4 +52,5 @@ async def get_current_user_id(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+    set_request_user(user_id)  # attach to the structured request log
     return user_id
