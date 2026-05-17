@@ -171,7 +171,7 @@ function ReviewerPageContent() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-2 border-r pr-4 border-slate-100">
+                            <div className="space-y-2 md:border-r md:pr-4 border-slate-100">
                                 <Label>Upload PDF</Label>
                                 <div className="flex items-center justify-center w-full">
                                     <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-slate-300 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-slate-100">

@@ -649,6 +649,7 @@ export const chatWithAIAgent = async (
   onSuggestions?: (suggestions: string[]) => void,
   userId?: string,
   conversationId?: string,
+  accessToken?: string,
   signal?: AbortSignal
 ) => {
   const response = await fetch("/api/ai/chat", {
@@ -662,6 +663,7 @@ export const chatWithAIAgent = async (
       context,
       userId,
       conversationId,
+      accessToken,
     }),
     signal,
   });

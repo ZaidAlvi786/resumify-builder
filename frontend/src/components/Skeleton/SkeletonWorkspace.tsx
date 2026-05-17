@@ -157,7 +157,7 @@ export default function SkeletonWorkspace() {
           value={jd}
           onChange={(e) => setJd(e.target.value)}
         />
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <select
             className="h-10 rounded-md border border-slate-200 px-3 text-sm"
             value={seniority}
@@ -189,7 +189,7 @@ export default function SkeletonWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between border-b border-slate-200 pb-4">
+      <header className="flex flex-col gap-2 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Fill in your skeleton</h1>
           <p className="text-sm text-slate-500">
@@ -200,7 +200,7 @@ export default function SkeletonWorkspace() {
         <button
           type="button"
           onClick={() => setSkeleton(null)}
-          className="text-sm text-slate-500 hover:underline"
+          className="self-start text-sm text-slate-500 hover:underline sm:self-auto"
         >
           ← New JD
         </button>

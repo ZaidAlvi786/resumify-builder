@@ -14,11 +14,13 @@ from services.anti_hallucination import HallucinationError
 from services.tailoring_service import BaseProfileMissing, tailor_from_jd
 from services.tailoring_stream import tailor_events
 from utils.auth import get_current_user_id
+from utils.rate_limit import rate_limited
 
 router = APIRouter()
 
 
 @router.post("/tailor-from-jd", response_model=TailoredResumeOutput)
+@rate_limited(group="ai_heavy", cost=1)
 async def tailor_from_jd_route(
     data: TailorFromJDInput,
     user_id: str = Depends(get_current_user_id),
@@ -56,6 +58,7 @@ async def tailor_from_jd_route(
 
 
 @router.post("/tailor-from-jd/stream")
+@rate_limited(group="ai_heavy", cost=1)
 async def tailor_from_jd_stream(
     data: TailorFromJDInput,
     user_id: str = Depends(get_current_user_id),

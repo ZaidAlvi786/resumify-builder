@@ -28,12 +28,15 @@ export default function SkillsSection() {
         </Button>
       </div>
       {fields.map((field, i) => (
-        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-4 space-y-1">
+        <div
+          key={field.id}
+          className="flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:items-end"
+        >
+          <div className="space-y-1 sm:col-span-4">
             <Label className="text-sm">Name *</Label>
             <Input placeholder="Python" {...register(`skills.${i}.name` as const)} />
           </div>
-          <div className="col-span-3 space-y-1">
+          <div className="space-y-1 sm:col-span-3">
             <Label className="text-sm">Category</Label>
             <select
               className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
@@ -43,7 +46,7 @@ export default function SkillsSection() {
               {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
-          <div className="col-span-3 space-y-1">
+          <div className="space-y-1 sm:col-span-3">
             <Label className="text-sm">Level</Label>
             <select
               className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
@@ -53,7 +56,7 @@ export default function SkillsSection() {
               {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
-          <div className="col-span-1 space-y-1">
+          <div className="space-y-1 sm:col-span-1">
             <Label className="text-sm">Years</Label>
             <Input
               type="number"
@@ -62,7 +65,7 @@ export default function SkillsSection() {
               {...register(`skills.${i}.years` as const, { valueAsNumber: true })}
             />
           </div>
-          <div className="col-span-1">
+          <div className="sm:col-span-1">
             <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
               <Trash2 className="w-4 h-4" />
             </Button>

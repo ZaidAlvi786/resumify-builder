@@ -2,6 +2,7 @@
  * Context Manager Service
  * Central service for gathering multi-layer context.
  */
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { TokenBudgetManager } from "./token-budget";
 import { SlidingWindow, Message } from "./sliding-window";
 import { EmbeddingService } from "../memory/embedding-service";
@@ -12,16 +13,21 @@ export class ContextManager {
   private budgetManager: TokenBudgetManager;
   private slidingWindow: SlidingWindow;
   private embeddingService: EmbeddingService;
+  private db: SupabaseClient;
 
-  constructor(apiKey: string) {
+  /** `db` lets the server route inject a request-authenticated client so
+   *  Row-Level Security authorises the conversation/message reads & writes.
+   *  Defaults to the browser anon client. */
+  constructor(apiKey: string, db: SupabaseClient = supabase) {
+    this.db = db;
     this.budgetManager = new TokenBudgetManager();
     const budget = this.budgetManager.getBudget();
     this.slidingWindow = new SlidingWindow(budget.window);
-    this.embeddingService = new EmbeddingService(apiKey);
+    this.embeddingService = new EmbeddingService(apiKey, db);
   }
 
   async initializeConversation(conversationId: string) {
-    const { data: messages, error } = await supabase
+    const { data: messages, error } = await this.db
       .from("chat_messages")
       .select("role, content")
       .eq("conversation_id", conversationId)
@@ -40,7 +46,7 @@ export class ContextManager {
   }
 
   async saveMessage(conversationId: string, role: "user" | "assistant", content: string) {
-    const { data, error } = await supabase
+    const { data, error } = await this.db
       .from("chat_messages")
       .insert({
         conversation_id: conversationId,
@@ -68,7 +74,7 @@ export class ContextManager {
   async processBackgroundTasks(userId: string, conversationId: string) {
     try {
       // 1. Load latest messages to check if we need memory extraction or summary
-      const { data: messages } = await supabase
+      const { data: messages } = await this.db
         .from("chat_messages")
         .select("*")
         .eq("conversation_id", conversationId)
@@ -102,7 +108,7 @@ export class ContextManager {
     const budget = this.budgetManager.getBudget();
 
     // 1. Get Long-Term Memory (User Profile/Facts)
-    const { data: memories } = await supabase
+    const { data: memories } = await this.db
       .from("user_memories")
       .select("fact_type, content")
       .eq("user_id", userId)
@@ -113,7 +119,7 @@ export class ContextManager {
       .join("\n") || "No stored user memories.";
 
     // 2. Get Recent Summary
-    const { data: latestSummary } = await supabase
+    const { data: latestSummary } = await this.db
       .from("chat_summaries")
       .select("content")
       .eq("conversation_id", conversationId)

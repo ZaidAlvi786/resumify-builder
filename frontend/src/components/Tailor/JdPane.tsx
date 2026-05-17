@@ -68,7 +68,7 @@ export default function JdPane({ streaming, onTailor, initial }: Props) {
         value={jd}
         onChange={(e) => setJd(e.target.value)}
       />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>Company</Label>
           <Input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Acme" />
@@ -77,7 +77,7 @@ export default function JdPane({ streaming, onTailor, initial }: Props) {
           <Label>Role</Label>
           <Input value={role} onChange={(e) => setRole(e.target.value)} placeholder="Backend Engineer" />
         </div>
-        <div className="space-y-1 col-span-2">
+        <div className="space-y-1 sm:col-span-2">
           <Label>Job URL (optional)</Label>
           <Input value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} placeholder="https://…" />
         </div>

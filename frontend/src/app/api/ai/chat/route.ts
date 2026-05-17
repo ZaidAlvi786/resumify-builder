@@ -1,51 +1,79 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { ContextManager } from "@/ai/context/context-manager";
-import { PromptOptimizer } from "@/ai/prompt/prompt-optimizer";
 import { GeminiClient } from "@/ai/services/gemini-client";
-import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, conversationId, resumeData, userId } = await req.json();
+    const { messages, conversationId, userId, accessToken } = await req.json();
 
-    if (!conversationId || !userId) {
+    if (!conversationId || !userId || !accessToken) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: "messages must be a non-empty array" }, { status: 400 });
     }
 
     const apiKey = process.env.GEMINI_API_KEY || "";
-    const contextManager = new ContextManager(apiKey);
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "GEMINI_API_KEY is not configured on the server" },
+        { status: 503 },
+      );
+    }
+
+    // A Supabase client acting AS the signed-in user: the route runs
+    // server-side, so RLS only authorises the conversation/message writes
+    // when the request carries the user's JWT.
+    const authedDb = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+      {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      },
+    );
+
+    // Ensure the conversation row exists — chat_messages.conversation_id
+    // is a foreign key onto it. Idempotent: a no-op if it already exists.
+    const { error: convError } = await authedDb
+      .from("chat_conversations")
+      .upsert({ id: conversationId, user_id: userId }, { onConflict: "id" });
+    if (convError) {
+      return NextResponse.json(
+        { error: `Could not open conversation: ${convError.message}` },
+        { status: 403 },
+      );
+    }
+
+    const contextManager = new ContextManager(apiKey, authedDb);
     const gemini = new GeminiClient(apiKey);
 
     const userMessage = messages[messages.length - 1].content;
 
-    // 1-3. Enrich prompt with multi-layer context (history, memory, summary)
+    // Enrich the prompt with multi-layer context (history, memory, summary).
     const { enrichPromptWithContext } = await import("@/ai/utils/ai-context-utility");
-    const optimizedPrompt = await enrichPromptWithContext(apiKey, {
-      userId,
-      conversationId,
-      userMessage,
-    });
+    const optimizedPrompt = await enrichPromptWithContext(
+      apiKey,
+      { userId, conversationId, userMessage },
+      authedDb,
+    );
 
-    // 3. Call Gemini
+    // Call Gemini (streaming).
     const response = await gemini.chat(optimizedPrompt, true);
-
     if (!response.body) {
       throw new Error("Empty response body from Gemini");
     }
 
-    // 4. Create a TransformStream to intercept and store the response
-    const encoder = new TextEncoder();
+    // Intercept the stream to persist the full assistant reply.
     const decoder = new TextDecoder();
     let assistantMessage = "";
 
     const transformStream = new TransformStream({
       async transform(chunk, controller) {
         const text = decoder.decode(chunk, { stream: true });
-        // Gemini stream format is usually JSON chunks
-        // We'll extract the text parts to store the full message
         try {
-          // Note: This is an approximation. Gemini returns multiple JSON objects
-          // usually separated by newlines or as a JSON array in streamGenerateContent
+          // Gemini streamGenerateContent emits newline-separated JSON objects.
           const lines = text.split("\n");
           for (const line of lines) {
             if (line.trim().startsWith("{")) {
@@ -55,34 +83,29 @@ export async function POST(req: NextRequest) {
               if (part) assistantMessage += part;
             }
           }
-        } catch (e) {
-          // Ignore partial JSON parsing errors
+        } catch {
+          // Ignore partial-JSON parse errors mid-stream.
         }
         controller.enqueue(chunk);
       },
       async flush() {
         if (assistantMessage) {
-          // Save assistant response to DB
           await contextManager.saveMessage(conversationId, "assistant", assistantMessage);
-          
-          // Background: Extract memory and check for summary
-          // In a real app, this should probably be a separate worker or queue
-          contextManager.processBackgroundTasks(userId, conversationId);
+          // Fire-and-forget memory extraction / summarisation.
+          void contextManager.processBackgroundTasks(userId, conversationId);
         }
-      }
+      },
     });
 
-    const pipedResponse = response.body.pipeThrough(transformStream);
-
-    // 5. Return streaming response
-    return new Response(pipedResponse, {
+    return new Response(response.body.pipeThrough(transformStream), {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
       },
     });
-  } catch (error: any) {
-    console.error("AI Chat Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("AI Chat Error:", message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

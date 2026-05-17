@@ -57,7 +57,14 @@ async def require_extension_user(request: Request) -> str:
 @router.post("/issue-token")
 async def issue_extension_token(user_id: str = Depends(get_current_user_id)) -> dict:
     """Mint the signed token + HMAC secret for the extension cookie."""
-    return issue_token(user_id)
+    try:
+        return issue_token(user_id)
+    except RuntimeError as exc:
+        # EXTENSION_SIGNING_KEY not configured — degrade cleanly to 503.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            f"Extension integration not configured: {exc}",
+        )
 
 
 @router.post("/handoff", response_model=ExtensionHandoffCreatedResponse)

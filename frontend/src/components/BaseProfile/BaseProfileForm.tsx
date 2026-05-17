@@ -106,7 +106,7 @@ export default function BaseProfileForm() {
   return (
     <FormProvider {...form}>
       <form className="space-y-8" onSubmit={(e) => { e.preventDefault(); saveNow(); }}>
-        <header className="flex items-center justify-between border-b border-slate-200 pb-4">
+        <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Base profile</h1>
             <p className="text-sm text-slate-500">

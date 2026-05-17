@@ -54,16 +54,18 @@ def create_handoff(
 
 
 def consume_handoff(user_id: str, handoff_id: str) -> Optional[dict]:
-    """Atomically claim a handoff: mark used only if unused, unexpired and
-    owned by this user. Returns the row on first claim, else None."""
+    """Atomically claim a handoff and delete it (single-use, deleted-on-use).
+
+    The DELETE ... RETURNING is the claim: the row comes back only on the
+    first consume by its owner before expiry; any later consume sees no row.
+    """
     _require_db()
     now = _utc_now().isoformat()
     resp = (
         supabase.table("extension_handoffs")
-        .update({"used_at": now})
+        .delete()
         .eq("id", handoff_id)
         .eq("user_id", user_id)
-        .is_("used_at", "null")
         .gt("expires_at", now)
         .execute()
     )
