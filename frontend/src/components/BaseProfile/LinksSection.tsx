@@ -28,16 +28,19 @@ export default function LinksSection() {
         <p className="text-sm text-slate-500">e.g. LinkedIn, GitHub, portfolio.</p>
       )}
       {fields.map((field, i) => (
-        <div key={field.id} className="grid grid-cols-12 gap-2 items-end">
-          <div className="col-span-4 space-y-1">
+        <div
+          key={field.id}
+          className="flex flex-col gap-2 sm:grid sm:grid-cols-12 sm:items-end"
+        >
+          <div className="space-y-1 sm:col-span-4">
             <Label>Label</Label>
             <Input placeholder="LinkedIn" {...register(`links.${i}.label` as const)} />
           </div>
-          <div className="col-span-7 space-y-1">
+          <div className="space-y-1 sm:col-span-7">
             <Label>URL</Label>
             <Input placeholder="https://linkedin.com/in/..." {...register(`links.${i}.url` as const)} />
           </div>
-          <div className="col-span-1">
+          <div className="sm:col-span-1">
             <Button type="button" variant="ghost" size="sm" onClick={() => remove(i)}>
               <Trash2 className="w-4 h-4" />
             </Button>
