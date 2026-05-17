@@ -1,8 +1,9 @@
 # backend/main.py
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from utils.logging import emit_request_log, new_request_context
 from routes import (
     resume_routes,
     payment_routes,
@@ -46,6 +47,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    """Emit one structured JSON log line per request. The route path only —
+    never the query string — so JD/company values are never logged."""
+    new_request_context(request.url.path)
+    try:
+        response = await call_next(request)
+    except Exception:
+        emit_request_log(500)
+        raise
+    emit_request_log(response.status_code)
+    return response
+
 
 # Include Routes
 app.include_router(resume_routes.router, prefix="/api/resume", tags=["Resume"])
