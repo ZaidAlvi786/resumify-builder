@@ -46,7 +46,7 @@ export default function ToolsPage() {
     return (
         <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 ml-64 p-8 bg-slate-50">
+            <main className="flex-1 lg:ml-64 p-4 lg:p-8 bg-slate-50">
                 <div className="max-w-7xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
@@ -205,7 +205,7 @@ function AchievementQuantifier({
                         />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <Label htmlFor="role">Role Title (Optional)</Label>
                             <Input
