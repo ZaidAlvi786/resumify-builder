@@ -29,73 +29,15 @@ from schemas.resume import (
     SalaryNegotiationInput, SalaryNegotiationOutput, NegotiationMessage, NegotiationScript
 )
 
-# Load environment variables
-load_dotenv()
-
-# Get API key from environment
-api_key = os.getenv("OPENROUTER_API_KEY")
-if not api_key:
-    raise ValueError(
-        "OPENROUTER_API_KEY environment variable is not set. "
-        "Please create a .env file in the backend directory with your OpenRouter API key."
-    )
-
-# Initialize OpenAI client with OpenRouter configuration
-client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=api_key,
+# OpenRouter client + model-fallback wrapper now live in services/ai_client.py.
+# Re-exported here so existing references in this module keep working.
+from services.ai_client import (  # noqa: E402
+    client,
+    MODEL_NAME,
+    FALLBACK_MODELS,
+    MODEL_LIST,
+    create_chat_completion_with_auto_fallback,
 )
-
-# Using a valid OpenRouter model ID
-# Free tier options: meta-llama/llama-3.2-3b-instruct:free, google/gemini-2.0-flash-exp:free (rate-limited)
-# Paid options: google/gemini-pro, google/gemini-1.5-flash, openai/gpt-4o-mini, anthropic/claude-3.5-sonnet
-# Default to a more reliable free model
-MODEL_NAME = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.2-3b-instruct:free")
-
-# Define fallback models for automatic switching when rate limits are reached
-# Priority order: primary model -> free tier fallbacks -> paid tier fallbacks
-# Users can customize this via OPENROUTER_FALLBACK_MODELS (comma-separated) or use defaults
-fallback_models_str = os.getenv("OPENROUTER_FALLBACK_MODELS", "")
-if fallback_models_str:
-    # User-provided fallback models
-    FALLBACK_MODELS = [m.strip() for m in fallback_models_str.split(",") if m.strip()]
-else:
-    # Default fallback models (free tier first, then paid)
-    FALLBACK_MODELS = [
-        "meta-llama/llama-3.2-3b-instruct:free",
-        "google/gemini-2.0-flash-exp:free",
-        "google/gemini-1.5-flash",
-        "google/gemini-pro",
-        "openai/gpt-4o-mini",
-    ]
-
-# Remove the primary model from fallback list if it's already there to avoid duplicates
-if MODEL_NAME in FALLBACK_MODELS:
-    FALLBACK_MODELS.remove(MODEL_NAME)
-
-# Build the complete model list: primary first, then fallbacks
-MODEL_LIST = [MODEL_NAME] + FALLBACK_MODELS
-
-def create_chat_completion_with_auto_fallback(
-    messages: list,
-    model: str = MODEL_NAME,
-    max_retries: int = 3,
-    retry_delay: int = 2,
-    **kwargs
-):
-    """
-    Wrapper function that automatically includes fallback models for rate limit handling.
-    This ensures all AI service calls have automatic model switching capability.
-    """
-    return create_chat_completion_with_retry(
-        client=client,
-        model=model,
-        messages=messages,
-        max_retries=max_retries,
-        retry_delay=retry_delay,
-        fallback_models=FALLBACK_MODELS,
-        **kwargs
-    ) 
 
 def generate_resume_content(data: ResumeInput) -> ResumeOutput:
     """
