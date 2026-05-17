@@ -195,7 +195,7 @@ export default function DetailedResumeScore({ atsScore, criteria = defaultCriter
                 {/* Summary */}
                 <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
                     <h4 className="font-semibold text-slate-900 mb-2">Score Summary</h4>
-                    <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                         <div>
                             <div className="text-2xl font-bold text-green-600">
                                 {criteria.flatMap(c => c.criteria).filter(c => c.status === "pass").length}
