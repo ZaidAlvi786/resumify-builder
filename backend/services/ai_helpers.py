@@ -4,6 +4,8 @@ from fastapi import HTTPException
 from openai import OpenAI
 from typing import List, Optional
 
+from utils.logging import record_model_use
+
 def create_chat_completion_with_retry(
     client: OpenAI,
     model: str,
@@ -54,6 +56,8 @@ def create_chat_completion_with_retry(
                 # Log successful model usage if we switched models
                 if model_idx > 0:
                     print(f"✓ Successfully used fallback model: {current_model}")
+                # Record which model served the request for the structured log.
+                record_model_use(current_model, model_idx)
                 return response
             except Exception as e:
                 error_str = str(e)
