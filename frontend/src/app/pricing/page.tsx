@@ -283,7 +283,7 @@ export default function PricingPage() {
             transition={{ delay: 0.2 }}
             className="flex flex-col items-center gap-6 mt-12 mb-8"
           >
-            <div className="relative p-1.5 bg-slate-100 rounded-2xl flex items-center w-72 h-16 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] border border-slate-200">
+            <div className="relative p-1.5 bg-slate-100 rounded-2xl flex items-center w-full max-w-xs sm:w-72 h-16 shadow-[inset_0_2px_4px_rgba(0,0,0,0.05)] border border-slate-200">
               <motion.div
                 className="absolute h-[calc(100%-12px)] rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20 w-[calc(50%-6px)]"
                 animate={{ x: billingCycle === 'monthly' ? 0 : '100%' }}
