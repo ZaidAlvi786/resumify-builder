@@ -72,7 +72,7 @@ const TemplateGallery: React.FC<TemplateGalleryProps> = ({
                         <Layout className="w-4 h-4 text-slate-400" />
                         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Core Layouts</h3>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {LAYOUTS.map((layout) => (
                             <button
                                 key={layout.id}
